@@ -7,17 +7,16 @@ import io
 import qrcode
 import base64
 from urllib.parse import urlencode
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, abort, current_app
+from flask import render_template, redirect, url_for, flash, request, session, abort, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from .models import User, PasswordResetToken, EmailVerificationToken, MFAToken
-from .forms import SignInForm, SignUpForm, ForgotPasswordForm, ResetPasswordForm, MFASetupForm, MFAVerifyForm
-from .email_utils import send_reset_password_email, send_verification_email
-
-auth_bp = Blueprint('auth', __name__)
+from app.models import User, PasswordResetToken, EmailVerificationToken, MFAToken
+from app.forms import SignInForm, SignUpForm, ForgotPasswordForm, ResetPasswordForm, MFASetupForm, MFAVerifyForm
+from app.email_utils import send_reset_password_email, send_verification_email
+from app.auth import auth_bp
 
 def generate_token(length=32):
     """Generate a secure random token"""
@@ -28,7 +27,7 @@ def generate_token(length=32):
 def sign_in():
     """Handle user sign in"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = SignInForm()
     
@@ -53,7 +52,7 @@ def sign_in():
         flash('Signed in successfully!', 'success')
         
         next_page = request.args.get('next')
-        return redirect(next_page or url_for('auth.profile'))
+        return redirect(next_page or url_for('index'))
     
     return render_template('sign_in.html', form=form)
 
@@ -61,7 +60,7 @@ def sign_in():
 def sign_up():
     """Handle user registration"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = SignUpForm()
     
@@ -138,7 +137,7 @@ def verify_email(token):
 def forgot_password():
     """Handle password reset request"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = ForgotPasswordForm()
     
@@ -177,7 +176,7 @@ def forgot_password():
 def reset_password(token):
     """Handle password reset with token"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     reset_token = PasswordResetToken.query.filter_by(token=token).first()
     
@@ -213,7 +212,7 @@ def setup_mfa():
     """Set up multi-factor authentication"""
     if current_user.has_mfa:
         flash('MFA is already enabled for your account', 'info')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = MFASetupForm()
     
@@ -243,7 +242,7 @@ def setup_mfa():
         session.pop('mfa_secret', None)
         
         flash('Multi-factor authentication has been enabled for your account!', 'success')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     return render_template('setup_mfa.html', form=form, qr_code=qr_code, secret=session['mfa_secret'])
 
@@ -278,17 +277,11 @@ def verify_mfa():
             flash('Signed in successfully!', 'success')
             
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('auth.profile'))
+            return redirect(next_page or url_for('index'))
         else:
             flash('Invalid authentication code', 'danger')
     
     return render_template('verify_mfa.html', form=form)
-
-@auth_bp.route('/profile')
-@login_required
-def profile():
-    """User profile page"""
-    return render_template('profile.html')
 
 @auth_bp.route('/sign-out')
 @login_required
@@ -341,11 +334,11 @@ def disable_mfa():
     """Disable MFA for the current user"""
     if not current_user.has_mfa:
         flash('MFA is not enabled for your account', 'info')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     current_user.has_mfa = False
     current_user.mfa_secret = None
     db.session.commit()
     
     flash('Multi-factor authentication has been disabled for your account.', 'success')
-    return redirect(url_for('auth.profile'))
+    return redirect(url_for('dashboard.profile'))

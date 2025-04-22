@@ -1,0 +1,336 @@
+{% extends 'dashboard/layout.html' %}
+
+{% set active_page = 'profile' %}
+
+{% block dashboard_title %}Your Profile{% endblock %}
+
+{% block dashboard_content %}
+<div class="row">
+    <!-- Profile Info -->
+    <div class="col-xl-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+            </div>
+            <div class="card-body text-center">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ current_user.email }}" alt="Profile Image" class="img-profile rounded-circle" style="width: 150px; height: 150px;">
+                <h4 class="mt-3">{{ current_user.email }}</h4>
+                <p class="text-muted mb-1">
+                    Member since {{ current_user.created_at.strftime('%B %d, %Y') if current_user.created_at else 'Unknown' }}
+                </p>
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="px-3 border-end">
+                        <h5>{{ current_user.get_followers_count() }}</h5>
+                        <p class="text-muted mb-0">Followers</p>
+                    </div>
+                    <div class="px-3">
+                        <h5>{{ current_user.get_following_count() }}</h5>
+                        <p class="text-muted mb-0">Following</p>
+                    </div>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="fas fa-edit me-1"></i> Edit Profile
+                </button>
+            </div>
+        </div>
+        
+        <!-- Account Security -->
+        <div class="card shadow mt-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Account Security</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>Email Verification</strong>
+                            <p class="text-muted mb-0 small">Your email has been verified</p>
+                        </div>
+                        <span class="badge bg-success">Verified</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>Two-Factor Authentication</strong>
+                            <p class="text-muted mb-0 small">
+                                {% if current_user.has_mfa %}
+                                Enhanced security for your account
+                                {% else %}
+                                Add an extra layer of security
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if current_user.has_mfa %}
+                        <a href="{{ url_for('auth.disable_mfa') }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to disable two-factor authentication?')">
+                            <i class="fas fa-times me-1"></i> Disable
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('auth.setup_mfa') }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-shield-alt me-1"></i> Enable
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="fas fa-key me-1"></i> Change Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Activity Stats -->
+    <div class="col-xl-8 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Your Activity Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div id="activity-chart" style="height: 300px;"></div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+            </div>
+            <div class="card-body">
+                <div id="recent-activity">
+                    <ul class="timeline">
+                        <li class="timeline-item bg-white rounded p-3 shadow">
+                            <div class="timeline-arrow"></div>
+                            <div class="d-flex justify-content-between">
+                                <h5 class="mb-0">Running session</h5>
+                                <span class="text-muted small">2 days ago</span>
+                            </div>
+                            <p class="text-small mt-2 mb-0">Completed 5.2 km in 32 minutes</p>
+                        </li>
+                        <li class="timeline-item bg-white rounded p-3 shadow">
+                            <div class="timeline-arrow"></div>
+                            <div class="d-flex justify-content-between">
+                                <h5 class="mb-0">Set a new goal</h5>
+                                <span class="text-muted small">3 days ago</span>
+                            </div>
+                            <p class="text-small mt-2 mb-0">Created a goal to run 100 km this month</p>
+                        </li>
+                        <li class="timeline-item bg-white rounded p-3 shadow">
+                            <div class="timeline-arrow"></div>
+                            <div class="d-flex justify-content-between">
+                                <h5 class="mb-0">Earned achievement</h5>
+                                <span class="text-muted small">1 week ago</span>
+                            </div>
+                            <p class="text-small mt-2 mb-0">Unlocked "Early Bird" achievement</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" value="{{ current_user.email }}" readonly>
+                        <div class="form-text">Email cannot be changed</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="displayName" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="displayName" value="{{ current_user.email.split('@')[0] }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="bio" rows="3" placeholder="Tell others about yourself"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword" required>
+                        <div class="form-text">Password must be at least 8 characters long</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="changePasswordBtn">Change Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up activity chart
+        setupActivityChart();
+        
+        // Set up form handlers
+        document.getElementById('saveProfileBtn').addEventListener('click', function() {
+            // In a real app, we would send an API request to update the profile
+            alert('Profile updated successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+            modal.hide();
+        });
+        
+        document.getElementById('changePasswordBtn').addEventListener('click', function() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                alert('New password must be at least 8 characters long');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match');
+                return;
+            }
+            
+            // In a real app, we would send an API request to change the password
+            alert('Password changed successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('changePasswordForm').reset();
+        });
+    });
+    
+    function setupActivityChart() {
+        const ctx = document.getElementById('activity-chart').getContext('2d');
+        
+        // Last 7 days dates
+        const dates = Array.from({ length: 7 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        });
+        
+        // Sample data
+        const data = {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Running (km)',
+                    data: [0, 0, 5.2, 0, 3.7, 0, 0],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                },
+                {
+                    label: 'Cycling (km)',
+                    data: [12, 0, 0, 0, 0, 15, 0],
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                },
+                {
+                    label: 'Weight Training (min)',
+                    data: [0, 45, 0, 30, 0, 0, 0],
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                }
+            ]
+        };
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: false
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+<style>
+/* Timeline styling */
+.timeline {
+    list-style-type: none;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.timeline:before {
+    content: ' ';
+    background: #e4e8eb;
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    z-index: 400;
+}
+
+.timeline-item {
+    margin: 1.5rem 0;
+}
+
+.timeline-arrow {
+    border-top: 0.5rem solid transparent;
+    border-right: 0.5rem solid #fff;
+    border-bottom: 0.5rem solid transparent;
+    display: block;
+    position: absolute;
+    left: -0.5rem;
+}
+
+.timeline-item {
+    position: relative;
+}
+</style>
+{% endblock %}

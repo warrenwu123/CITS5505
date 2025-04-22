@@ -56,7 +56,9 @@ with app.app_context():
 
 # Import and register blueprints
 from .auth import auth_bp
+from .dashboard import dashboard_bp
 app.register_blueprint(auth_bp)
+app.register_blueprint(dashboard_bp)
 
 # Load user from user_id stored in the session
 @login_manager.user_loader
