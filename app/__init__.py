@@ -67,5 +67,20 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    from flask import redirect, url_for
-    return redirect(url_for('auth.sign_in'))
+    from flask import render_template, redirect, url_for
+    from flask_login import current_user
+    
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.sign_in'))
+    
+    return render_template('home.html')
+
+@app.route('/tutorials')
+def tutorials():
+    from flask import render_template, redirect, url_for
+    from flask_login import current_user
+    
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.sign_in'))
+    
+    return render_template('tutorials.html')
