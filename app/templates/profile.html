@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - Flask Auth{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Your Profile
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-4 mb-md-0">
+                        <div class="avatar-placeholder bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; margin: 0 auto;">
+                            <i class="fas fa-user fa-5x text-light"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h4>Account Information</h4>
+                        <hr>
+                        
+                        <div class="mb-3 row">
+                            <div class="col-sm-4 fw-bold">
+                                <i class="fas fa-envelope me-2"></i>Email:
+                            </div>
+                            <div class="col-sm-8">
+                                {{ current_user.email }}
+                                {% if current_user.is_email_verified %}
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check me-1"></i>Verified
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning ms-2">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Unverified
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 row">
+                            <div class="col-sm-4 fw-bold">
+                                <i class="fas fa-shield-alt me-2"></i>MFA Status:
+                            </div>
+                            <div class="col-sm-8">
+                                {% if current_user.has_mfa %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Enabled
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times me-1"></i>Disabled
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 row">
+                            <div class="col-sm-4 fw-bold">
+                                <i class="fas fa-calendar-alt me-2"></i>Joined:
+                            </div>
+                            <div class="col-sm-8">
+                                {{ current_user.created_at.strftime('%B %d, %Y') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>Account Security</h4>
+                    <hr>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <a href="#" class="btn btn-outline-primary">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                {% if current_user.has_mfa %}
+                                    <a href="{{ url_for('auth.disable_mfa') }}" class="btn btn-outline-danger">
+                                        <i class="fas fa-shield-alt me-2"></i>Disable MFA
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('auth.setup_mfa') }}" class="btn btn-outline-success">
+                                        <i class="fas fa-shield-alt me-2"></i>Enable MFA
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
