@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - FitTrack{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center">
+    <div class="hero-content">
+        <h1>You're not alone</h1>
+        <p class="lead">Join the community of fitness enthusiasts</p>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="stats-overview container">
+        <div class="row">
+            <div class="col-md-3 stat-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="stat-value">50+</div>
+                <div class="stat-label">Cities Covered</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <i class="fas fa-road"></i>
+                <div class="stat-value">1M+</div>
+                <div class="stat-label">Kilometers Tracked</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <i class="fas fa-clock"></i>
+                <div class="stat-value">100K+</div>
+                <div class="stat-label">Hours of Activity</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <i class="fas fa-users"></i>
+                <div class="stat-value">500K+</div>
+                <div class="stat-label">Active Users</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <h2 class="section-title text-center">FitTrack beside you every step</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <h3>Precise GPS Tracking</h3>
+                    <p>Real-time GPS tracking with advanced algorithms for accurate distance and route mapping</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Anti-Cheating System</h3>
+                    <p>Unique anti-cheating system to maintain fair competition and authentic records</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Professional Analysis</h3>
+                    <p>Comprehensive data analysis to help optimize your training and performance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Training Programs -->
+<section class="programs-section bg-light">
+    <div class="container">
+        <h2 class="section-title text-center">Training Programs</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="program-card">
+                    <div class="program-icon">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <h3>Training Plans</h3>
+                    <p>Scientific running programs to help you achieve your goals</p>
+                    <a href="#" class="btn btn-primary">Start Training</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="program-card">
+                    <div class="program-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3>Elite Challenge</h3>
+                    <p>Push your limits with special challenges and achievements</p>
+                    <a href="#" class="btn btn-primary">Join Challenge</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="program-card">
+                    <div class="program-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3>Live Events</h3>
+                    <p>Participate in virtual races and live marathon events</p>
+                    <a href="#" class="btn btn-primary">View Events</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Community Section -->
+<section class="community-section">
+    <div class="container">
+        <h2 class="section-title text-center">Running is not alone</h2>
+        <div class="user-showcase">
+            <div class="row">
+                {% for i in range(4) %}
+                <div class="col-md-3">
+                    <div class="user-card">
+                        <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="User Avatar" class="user-avatar">
+                        <h4>Runner Name</h4>
+                        <p class="user-stats">
+                            <span>ID: 123456</span><br>
+                            <span>500km · 48h</span>
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Download Section -->
+<section class="download-section text-center">
+    <div class="container">
+        <h2>Start Your Journey Today</h2>
+        <p class="lead">Download FitTrack and join our global community of runners</p>
+        <div class="download-buttons">
+            <a href="#" class="btn btn-primary btn-lg"><i class="fab fa-apple"></i> App Store</a>
+            <a href="#" class="btn btn-primary btn-lg"><i class="fab fa-google-play"></i> Google Play</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize carousel
+    document.addEventListener('DOMContentLoaded', function() {
+        var myCarousel = new bootstrap.Carousel(document.getElementById('heroCarousel'), {
+            interval: 5000
+        });
+    });
+</script>
+{% endblock %}
