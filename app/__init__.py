@@ -51,8 +51,20 @@ login_manager.login_message_category = 'info'
 # Create database tables
 with app.app_context():
     # Import models to ensure they're registered with SQLAlchemy
-    from .models import User, MFAToken, PasswordResetToken, EmailVerificationToken
+    from .models import User, MFAToken, PasswordResetToken, EmailVerificationToken,ActivityType, ActivitySession, Achievement, UserAchievement, Goal
     db.create_all()
+
+    default_activities = [
+        "Running", "Walking", "Cycling", "Swimming",
+        "Barbell Squat", "Bench Press", "Deadlift",
+        "Chin-up", "Military Press", "Push-up",
+        "Flexibility Training"
+    ]
+    for name in default_activities:
+        exists = ActivityType.query.filter_by(name=name).first()
+        if not exists:
+            db.session.add(ActivityType(name=name))
+    db.session.commit()
 
 # Import and register blueprints
 from .auth import auth_bp

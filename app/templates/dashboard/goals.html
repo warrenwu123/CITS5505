@@ -4,19 +4,18 @@
 
 {% block dashboard_title %}Your Goals{% endblock %}
 
-{% block dashboard_actions %}
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGoalModal">
-    <i class="fas fa-plus"></i> New Goal
-</button>
-{% endblock %}
 
 {% block dashboard_content %}
+
 <!-- Current Goals -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Current Goals</h6>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGoalModal">
+                    <i class="fas fa-plus"></i> New Goal
+                </button>
             </div>
             <div class="card-body">
                 {% if goals %}
