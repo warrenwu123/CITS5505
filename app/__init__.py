@@ -8,6 +8,7 @@ from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_migrate import Migrate
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,6 +21,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 mail = Mail()
+migrate = Migrate()
 
 # Create Flask app
 app = Flask(__name__)
@@ -35,6 +37,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 db.init_app(app)
 login_manager.init_app(app)
 mail.init_app(app)
+migrate.init_app(app, db)
 
 # Add utility functions to Jinja templates
 @app.context_processor
@@ -57,6 +60,10 @@ with app.app_context():
 # Import and register blueprints
 from .auth import auth_bp
 app.register_blueprint(auth_bp)
+
+# Import and register the profile blueprint
+from .profile import profile_bp 
+app.register_blueprint(profile_bp)
 
 # Load user from user_id stored in the session
 @login_manager.user_loader

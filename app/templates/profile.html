@@ -3,6 +3,27 @@
 {% block title %}Profile - Flask Auth{% endblock %}
 
 {% block content %}
+<style>
+    .avatar-placeholder {
+        cursor: pointer;
+        position: relative;
+    }
+    .upload-icon {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+</style>
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card shadow">
@@ -14,9 +35,21 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 text-center mb-4 mb-md-0">
-                        <div class="avatar-placeholder bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; margin: 0 auto;">
-                            <i class="fas fa-user fa-5x text-light"></i>
-                        </div>
+                        <form method="POST" enctype="multipart/form-data" id="profile-pic-form">
+                            {{ form.hidden_tag() }}
+                            <label for="picture" class="avatar-placeholder bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; margin: 0 auto; overflow: hidden;">
+                                {% if current_user.profile_image %}
+                                    <img src="{{ url_for('static', filename=current_user.profile_image) }}" class="img-fluid" alt="Profile Picture">
+                                {% else %}
+                                    <i class="fas fa-user fa-5x text-light"></i>
+                                {% endif %}
+                                
+                                <div class="upload-icon">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            </label>
+                            {{ form.picture(class="d-none", id="picture") }}
+                        </form>
                     </div>
                     <div class="col-md-8 ps-md-3">
                         <h4>Account Information</h4>
@@ -100,4 +133,11 @@
         </div>
     </div>
 </div>
+<script>
+    document.getElementById('picture').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            document.getElementById('profile-pic-form').submit();
+        }
+    });
+</script>
 {% endblock %}
