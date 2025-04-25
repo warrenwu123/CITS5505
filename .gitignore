@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Flask instance folder (contains config, secrets, DBs etc.)
+instance/
+*.db
+*.sqlite3
+
+# Environment variables and config
+.env
+.env.*
+
+# Pytest / Coverage
+.coverage
+htmlcov/
+.tox/
+.cache/
+pytest_cache/
+
+# VSCode and other IDE/editor settings
+.vscode/
+.idea/
+
+# Mac and Windows system files
+.DS_Store
+Thumbs.db
+
+# Ignore picture files in static/profile_pics
+app/static/profile_pics/*
