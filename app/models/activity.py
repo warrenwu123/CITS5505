@@ -7,26 +7,39 @@ class ActivityType(db.Model):
     name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=True)
     icon = db.Column(db.String(50), nullable=True)
+    calories_per_hour = db.Column(db.Float, nullable=True)
     
     # Relationships
     activity_sessions = db.relationship('ActivitySession', backref='activity_type', lazy=True)
     goals = db.relationship('Goal', backref='activity_type', lazy=True)
+    fitness_level_configs = db.relationship('FitnessLevelConfig', backref='activity_type', lazy=True)
+    goal_types = db.relationship('Goaltype', secondary='activity_type_plan_type', lazy='subquery',
+                                 backref=db.backref('activity_types', lazy=True))
     
     def __repr__(self):
         return f'<ActivityType {self.name}>'
+    
+class activity_type_plan_type(db.model):
+    db.Column('activity_type_id', db.Integer, db.ForeignKey('activity_type.id'), primary_key=True),
+    db.Column('goal_type_id', db.Integer, db.ForeignKey('goal_type.id'), primary_key=True)
+
 
 
 class ActivitySession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False)
+    goal_type_id = db.Column(db.Integer, db.ForeignKey('goal.id'), nullable=True)
     start_time = db.Column(db.DateTime, nullable=False, default=func.now())
     end_time = db.Column(db.DateTime, nullable=True)
-    distance = db.Column(db.Float, nullable=True)
+    sets = db.Column(db.Integer, nullable=True)
     reps = db.Column(db.Integer, nullable=True)
     duration = db.Column(db.Interval, nullable=True)
     calories_burned = db.Column(db.Float, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    is_completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
     
     def __repr__(self):
         return f'<ActivitySession {self.id}>'
@@ -44,6 +57,26 @@ class Achievement(db.Model):
     
     def __repr__(self):
         return f'<Achievement {self.title}>'
+    
+class FitnessLevelConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    
+    activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False)
+    
+    fitness_level = db.Column(
+        db.Enum('beginner', 'novice', 'intermediate', 'advanced', 'elite', name='fitnesslevelenum'),
+        nullable=False
+    )
+    
+    weight_ratio = db.Column(db.Float, nullable=True)  
+    reps = db.Column(db.Integer, nullable=True) 
+    sets = db.Column(db.Integer, nullable=True)  
+    duration_minutes = db.Column(db.Float, nullable=True)  
+
+    created_at = db.Column(db.DateTime, default=func.now())
+
+    def __repr__(self):
+        return f"<FitnessLevelConfig {self.fitness_level} - Activity {self.activity_type_id}>"
 
 
 class UserAchievement(db.Model):
@@ -54,17 +87,32 @@ class UserAchievement(db.Model):
     
     def __repr__(self):
         return f'<UserAchievement {self.user_id} - {self.achievement_id}>'
-
-
+    
+class GoalType(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    goals = db.relationship('Goal', backref='goal_type', lazy=True)
+    activity_types = db.relationship('ActivityType', secondary='activity_type_plan_type', lazy='subquery',
+                                     backref=db.backref('goal_types', lazy=True))
+    
+    def __repr__(self):
+        return f'<GoalType {self.name}>'
+    
 class Goal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False)
-    goal_type = db.Column(db.String(50), nullable=False)  # distance, duration, reps, etc.
+    goal_type_id = db.Column(db.String(50), nullable=False)  
     target_value = db.Column(db.Float, nullable=False)
+    available_time_per_week = db.Column(db.Float, nullable=False)  
     start_date = db.Column(db.DateTime, nullable=False, default=func.now())
     end_date = db.Column(db.DateTime, nullable=True)
     is_completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
     
     def __repr__(self):
         return f'<Goal {self.goal_type} {self.target_value}>'
@@ -139,3 +187,4 @@ class Goal(db.Model):
             'percentage': 0,
             'is_completed': self.is_completed
         }
+    
