@@ -11,63 +11,67 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Current Goals</h6>
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Current Activity Sessions</h6>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGoalModal">
-                    <i class="fas fa-plus"></i> New Goal
+                    <i class="fas fa-plus"></i> New Session
                 </button>
             </div>
             <div class="card-body">
-                {% if goals %}
+                {% if activity_sessions %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>Activity</th>
                                 <th>Goal Type</th>
-                                <th>Target</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Duration</th>
+                                <th>Calories Burned</th>
                                 <th>Progress</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="goals-table-body">
-                            {% for goal in goals %}
-                            <tr id="goal-row-{{ goal.id }}">
-                                <td>{{ goal.activity_type.name }}</td>
-                                <td>{{ goal.goal_type|capitalize }}</td>
-                                <td>{{ goal.target_value }} 
-                                    {% if goal.goal_type == 'distance' %}km
-                                    {% elif goal.goal_type == 'duration' %}minutes
-                                    {% elif goal.goal_type == 'reps' %}repetitions
-                                    {% elif goal.goal_type == 'calories' %}calories
+                        <tbody id="sessions-table-body">
+                            {% for session in activity_sessions %}
+                            <tr id="session-row-{{ session.id }}">
+                                <td>{{ session.activity_type.name }}</td>
+                                <td>{{ session.goal_type.name if session.goal_type else 'N/A' }}</td>
+                                <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ session.end_time.strftime('%Y-%m-%d %H:%M') if session.end_time else 'Ongoing' }}</td>
+                                <td>
+                                    {% if session.duration %}
+                                        {{ (session.duration.total_seconds() // 60)|int }} minutes
+                                    {% else %}
+                                        N/A
                                     {% endif %}
                                 </td>
-                                <td>{{ goal.start_date.strftime('%Y-%m-%d') }}</td>
-                                <td>{{ goal.end_date.strftime('%Y-%m-%d') if goal.end_date else 'Ongoing' }}</td>
+                                <td>{{ session.calories_burned if session.calories_burned else 'N/A' }}</td>
                                 <td>
                                     <div class="progress">
-                                        <div class="progress-bar {{ 'bg-success' if goal.is_completed else '' }}" 
+                                        <div class="progress-bar {{ 'bg-success' if session.is_completed else '' }}" 
                                              role="progressbar" 
-                                             style="width: {{ goal.get_progress().percentage }}%" 
-                                             aria-valuenow="{{ goal.get_progress().percentage }}" 
+                                             style="width: {{ 100 if session.is_completed else 50 }}%" 
+                                             aria-valuenow="{{ 100 if session.is_completed else 50 }}" 
                                              aria-valuemin="0" 
                                              aria-valuemax="100">
-                                            {{ goal.get_progress().percentage|int }}%
+                                            {{ 100 if session.is_completed else 50 }}%
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-info edit-goal-btn" 
-                                            data-goal-id="{{ goal.id }}"
-                                            data-activity-type="{{ goal.activity_type.id }}"
-                                            data-goal-type="{{ goal.goal_type }}"
-                                            data-target-value="{{ goal.target_value }}"
-                                            data-end-date="{{ goal.end_date.strftime('%Y-%m-%d') if goal.end_date else '' }}">
+                                    <button class="btn btn-sm btn-info edit-session-btn" 
+                                            data-session-id="{{ session.id }}"
+                                            data-activity-type="{{ session.activity_type.id }}"
+                                            data-goal-type="{{ session.goal_type.id if session.goal_type else '' }}"
+                                            data-start-time="{{ session.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+                                            data-end-time="{{ session.end_time.strftime('%Y-%m-%dT%H:%M') if session.end_time else '' }}"
+                                            data-duration="{{ session.duration.total_seconds() if session.duration else '' }}"
+                                            data-calories="{{ session.calories_burned if session.calories_burned else '' }}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-danger delete-goal-btn" data-goal-id="{{ goal.id }}">
+                                    <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -78,7 +82,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <p class="mb-0">You don't have any goals yet. Click the 'New Goal' button to create one.</p>
+                    <p class="mb-0">You don't have any activity sessions yet. Click the 'New Session' button to create one.</p>
                 </div>
                 {% endif %}
             </div>
@@ -140,10 +144,10 @@
                         <label for="goalType" class="form-label">Goal Type</label>
                         <select class="form-select" id="goalType" required>
                             <option value="" selected disabled>Select goal type</option>
-                            <option value="distance">Distance</option>
-                            <option value="duration">Duration</option>
-                            <option value="reps">Repetitions</option>
-                            <option value="calories">Calories</option>
+                            <option value="weightloss">weightloss</option>
+                            <option value="weightgain">weightgain</option>
+                            <option value="strength">Strength</option>
+                            <option value="flexibility">endurance</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -327,7 +331,7 @@
         };
         
         try {
-            const response = await fetch('/api/goals', {
+            const response = await fetch('/api/create-goal', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

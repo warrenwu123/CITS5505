@@ -5,6 +5,9 @@ from sqlalchemy import func
 from app import db
 from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow
 from app.dashboard import dashboard_bp
+from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
+
+import datetime
 
 @dashboard_bp.route('/')
 @login_required
@@ -118,8 +121,9 @@ def create_goal():
         goal = Goal(
             user_id=current_user.id,
             activity_type_id=data.get('activity_type_id'),
-            goal_type=data.get('goal_type'),
+            goal_type_id=data.get('goal_type_id'),
             target_value=data.get('target_value'),
+            available_time_per_week = data.get('available_time_per_week'),
             start_date=func.now(),
             end_date=data.get('end_date'),
             is_completed=False
@@ -127,11 +131,62 @@ def create_goal():
         
         db.session.add(goal)
         db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Goal created successfully'})
-    except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        
+        if goal.goal_type == 'weightloss':
+            plan = generate_weightloss_plan(goal)   
+        if goal.goal_type == 'strength':
+            plan = generate_strength_plan(goal)
+        elif goal.goal_type == 'weightgain':
+            plan = generate_weightgain_plan(goal)
+        elif goal.goal_type == 'endurance':
+            plan = generate_endurance_plan(goal)
+        else:
+            return jsonify({'error': 'Unsupported goal type'}), 400
+        sessions = []
+        today = datetime.date.today()
+        if goal.goal_type == 'strength' or goal.goal_type == 'weightgain':
+            for p in plan['strength_training'] if goal.goal_type == 'weightgain' else plan:
+                session = ActivitySession(
+                    user_id=current_user.id,
+                    activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
+                    goal_id=goal.id,
+                    goal_type_id=goal.goal_type_id,
+                    start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
+                    duration=datetime.timedelta(minutes=10 * p['rounds_per_week']),
+                    reps=p.get('reps'),
+                    calories_burned=None,
+                    notes=None,
+                    is_completed=False
+                )
+                sessions.append(session)
+
+        elif goal.goal_type == 'endurance' or goal.goal_type == 'weightloss':
+            for p in plan['plan']:
+                session = ActivitySession(
+                    user_id=current_user.id,
+                    activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
+                    goal_id=goal.id,
+                    goal_type_id=goal.goal_type_id,
+                    start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
+                    duration=datetime.timedelta(minutes=p.get('target_minutes') or p.get('target_minutes_per_week')),
+                    calories_burned=p.get('expected_calories_burned_per_week'),
+                    notes=None,
+                    is_completed=False
+                )
+                sessions.append(session)
+
+        db.session.add_all(sessions)
+        db.session.commit()
+
+        sessions_data = ActivitySession.query.filter_by(user_id=current_user.id, goal_id=goal.id).all()
+        
+        return jsonify({'success': True, 'message': 'Goal created successfully', 'sessions': [session.to_dict() for session in sessions_data]})
+        
+    except Exception as e:
+        return jsonify({'error': 'Unsupported goal type'}), 400
+
+        
 
 @dashboard_bp.route('/api/update-goal/<int:goal_id>', methods=['PUT'])
 @login_required
