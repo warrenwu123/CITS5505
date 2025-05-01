@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 
 from app import db
-from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow
+from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
 
@@ -29,9 +29,11 @@ def goals():
     user_goals = Goal.query.filter_by(user_id=current_user.id).all()
     # Get all activity types for goal creation
     activity_types = ActivityType.query.all()
-    print(activity_types)  
+    print([atype.to_dict() for atype in activity_types])
+
+    incomplete_sessions = ActivitySession.query.filter_by(user_id=current_user.id, is_completed=False).all()
     
-    return render_template('dashboard/goals.html', goals=user_goals, activity_types=activity_types)
+    return render_template('dashboard/goals.html', goals=user_goals, activity_types=activity_types,sessions=incomplete_sessions)
 
 @dashboard_bp.route('/achievements')
 @login_required
@@ -112,17 +114,24 @@ def social():
 @dashboard_bp.route('/api/create-goal', methods=['POST'])
 @login_required
 def create_goal():
+    print("Available goal types in DB:",[atype.to_dict() for atype in GoalType.query.all()])
     """API endpoint to create a new goal"""
     data = request.json
+
     
     if not data:
         return jsonify({'success': False, 'message': 'No data provided'}), 400
     
     try:
+        goal_type = data.get('goal_type')
+        goal_type_obj = GoalType.query.filter_by(name=goal_type).first()
+        if not goal_type_obj:
+            return jsonify({'success': False, 'message': 'Invalid goal type'}), 400
+        
         goal = Goal(
             user_id=current_user.id,
             activity_type_id=data.get('activity_type_id'),
-            goal_type_id=data.get('goal_type_id'),
+            goal_type_id=goal_type_obj.id,
             target_value=data.get('target_value'),
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
@@ -133,22 +142,22 @@ def create_goal():
         
         db.session.add(goal)
         db.session.commit()
-        db.session.rollback()
+       
         
-        if goal.goal_type == 'weightloss':
+        if goal_type == 'weightloss':
             plan = generate_weightloss_plan(goal)   
-        if goal.goal_type == 'strength':
+        elif goal_type == 'strength':
             plan = generate_strength_plan(goal)
-        elif goal.goal_type == 'weightgain':
+        elif goal_type == 'weightgain':
             plan = generate_weightgain_plan(goal)
-        elif goal.goal_type == 'endurance':
+        elif goal_type == 'endurance':
             plan = generate_endurance_plan(goal)
         else:
             return jsonify({'error': 'Unsupported goal type'}), 400
         sessions = []
         today = datetime.date.today()
-        if goal.goal_type == 'strength' or goal.goal_type == 'weightgain':
-            for p in plan['strength_training'] if goal.goal_type == 'weightgain' else plan:
+        if goal_type == 'strength' or goal_type == 'weightgain':
+            for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
                 session = ActivitySession(
                     user_id=current_user.id,
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
@@ -163,7 +172,7 @@ def create_goal():
                 )
                 sessions.append(session)
 
-        elif goal.goal_type == 'endurance' or goal.goal_type == 'weightloss':
+        elif goal_type == 'endurance' or goal_type == 'weightloss':
             for p in plan['plan']:
                 session = ActivitySession(
                     user_id=current_user.id,
@@ -186,7 +195,9 @@ def create_goal():
         return jsonify({'success': True, 'message': 'Goal created successfully', 'sessions': [session.to_dict() for session in sessions_data]})
         
     except Exception as e:
-        return jsonify({'error': 'Unsupported goal type'}), 400
+        import traceback
+        traceback.print_exc()  
+        return jsonify({'error': str(e)}), 500
 
         
 
