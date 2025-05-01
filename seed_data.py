@@ -3,7 +3,7 @@ from app.models import ActivityType, FitnessLevelConfig, GoalType, User, MFAToke
 
 with app.app_context():
     # Import models to ensure they're registered with SQLAlchemy
-    from .models import User, MFAToken, PasswordResetToken, EmailVerificationToken,ActivityType, ActivitySession, Achievement, UserAchievement, Goal, Follow, FitnessLevelConfig, GoalType
+    from app.models import User, MFAToken, PasswordResetToken, EmailVerificationToken,ActivityType, ActivitySession, Achievement, UserAchievement, Goal, Follow, FitnessLevelConfig, GoalType
     
     db.create_all()
 

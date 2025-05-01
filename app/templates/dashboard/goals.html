@@ -7,6 +7,7 @@
 
 {% block dashboard_content %}
 
+<pre>{{ activity_types | pprint }}</pre>
 <!-- Current Goals -->
 <div class="row">
     <div class="col-12">
@@ -131,6 +132,7 @@
             </div>
             <div class="modal-body">
                 <form id="createGoalForm">
+                    <!-- Activity Type -->
                     <div class="mb-3">
                         <label for="activityType" class="form-label">Activity Type</label>
                         <select class="form-select" id="activityType" required>
@@ -139,33 +141,71 @@
                             <option value="{{ activity_type.id }}">{{ activity_type.name }}</option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">
+                            Choose the type of physical activity you plan to focus on.
+                        </div>
                     </div>
+
+                    <!-- Goal Type -->
                     <div class="mb-3">
                         <label for="goalType" class="form-label">Goal Type</label>
                         <select class="form-select" id="goalType" required>
                             <option value="" selected disabled>Select goal type</option>
-                            <option value="weightloss">weightloss</option>
-                            <option value="weightgain">weightgain</option>
+                            <option value="weightloss">Weight Loss</option>
+                            <option value="weightgain">Weight Gain</option>
                             <option value="strength">Strength</option>
-                            <option value="flexibility">endurance</option>
+                            <option value="flexibility">Flexibility / Endurance</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="targetValue" class="form-label">Target Value</label>
-                        <input type="number" class="form-control" id="targetValue" required min="1" step="0.01">
-                        <div class="form-text" id="targetValueHelp">
-                            Enter the target value (e.g., 10 km, 30 minutes, 100 reps, 500 calories)
+                        <div class="form-text">
+                            What kind of outcome do you want to achieve through your training?
                         </div>
                     </div>
+
+                    <!-- Target Value (conditionally visible) -->
+                    <div class="mb-3" id="targetValueGroup" style="display: none;">
+                        <label for="targetValue" class="form-label">Target Value</label>
+                        <input type="number" class="form-control" id="targetValue" min="1" step="0.01">
+                        <div class="form-text" id="targetValueHelp">
+                            Enter your target body weight (in kg or lbs) or the amount of weight to lose or gain.
+                        </div>
+                    </div>
+
+                    <!-- Fitness Level -->
+                    <div class="mb-3">
+                        <label for="fitnessLevel" class="form-label">Fitness Level</label>
+                        <select class="form-select" id="fitnessLevel" required>
+                            <option value="" selected disabled>Select your current fitness level</option>
+                            <option value="beginner">Beginner</option>
+                            <option value="novice">Novice</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                            <option value="elite">Elite</option>
+                        </select>
+                        <div class="form-text">
+                            Helps tailor your goal based on your experience level and physical conditioning.
+                        </div>
+                    </div>
+
+                    <!-- Available Time Per Week -->
+                    <div class="mb-3">
+                        <label for="availableTime" class="form-label">Available Time Per Week (in hours)</label>
+                        <input type="number" class="form-control" id="availableTime" min="1" max="168" step="0.5" required>
+                        <div class="form-text">
+                            How many hours can you dedicate to training per week? (Helps personalize recommendations)
+                        </div>
+                    </div>
+
+                    <!-- End Date -->
                     <div class="mb-3">
                         <label for="endDate" class="form-label">End Date (Optional)</label>
                         <input type="date" class="form-control" id="endDate">
                         <div class="form-text">
-                            If not specified, this will be an ongoing goal
+                            Leave empty if this is an ongoing goal with no specific end date.
                         </div>
                     </div>
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveGoalBtn">Create Goal</button>
@@ -274,6 +314,16 @@
         setupEditButtons();
         setupDeleteButtons();
     });
+
+    document.getElementById('goalType').addEventListener('change', function () {
+    const selected = this.value;
+    const targetGroup = document.getElementById('targetValueGroup');
+    if (selected === 'weightloss' || selected === 'weightgain') {
+        targetGroup.style.display = 'block';
+    } else {
+        targetGroup.style.display = 'none';
+    }
+});
     
     function setupEditButtons() {
         const editButtons = document.querySelectorAll('.edit-goal-btn');
@@ -341,7 +391,7 @@
             
             if (response.ok) {
                 // Reload the page to show the new goal
-                window.location.reload();
+                const result = await response.json();
             } else {
                 const error = await response.json();
                 alert(`Error creating goal: ${error.error}`);

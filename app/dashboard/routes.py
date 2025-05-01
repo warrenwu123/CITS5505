@@ -29,6 +29,7 @@ def goals():
     user_goals = Goal.query.filter_by(user_id=current_user.id).all()
     # Get all activity types for goal creation
     activity_types = ActivityType.query.all()
+    print(activity_types)  
     
     return render_template('dashboard/goals.html', goals=user_goals, activity_types=activity_types)
 
@@ -123,6 +124,7 @@ def create_goal():
             activity_type_id=data.get('activity_type_id'),
             goal_type_id=data.get('goal_type_id'),
             target_value=data.get('target_value'),
+            fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
             start_date=func.now(),
             end_date=data.get('end_date'),

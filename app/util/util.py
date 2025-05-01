@@ -1,5 +1,5 @@
 import random
-from app.models import ActivityType, FitnessLevelConfig
+from app.models import ActivityType, FitnessLevelConfig,GoalType
 from app.models import Goal, User, ActivitySession, Achievement, UserAchievement, Follow
 
 def generate_weightloss_plan(goal):
@@ -54,7 +54,7 @@ def generate_weightloss_plan(goal):
     }
 
 def generate_strength_plan(goal):
-    strength_plan_type = PlanType.query.filter_by(name='Strength').first()
+    strength_plan_type = GoalType.query.filter_by(name='Strength').first()
     strength_activities = strength_plan_type.activities  # Strength Plan
 
     
@@ -80,7 +80,7 @@ def generate_strength_plan(goal):
     return plan
 
 def generate_weightgain_plan(goal):
-    strength_plan_type = PlanType.query.filter_by(name='Strength').first()
+    strength_plan_type = GoalType.query.filter_by(name='Strength').first()
     strength_activities = strength_plan_type.activities
 
     plan = []
@@ -103,7 +103,7 @@ def generate_weightgain_plan(goal):
     }
 
 def generate_endurance_plan(goal):
-    endurance_plan_type = PlanType.query.filter_by(name='Endurance').first()
+    endurance_plan_type = GoalType.query.filter_by(name='Endurance').first()
     endurance_activities = endurance_plan_type.activities
     
     total_minutes_per_week = goal.available_time_per_week * 60
