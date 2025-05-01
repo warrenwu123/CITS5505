@@ -28,7 +28,7 @@ def generate_weightloss_plan(goal):
     # assign the acivities to the available time
     total_calories_per_week = 0
     for activity in weightloss_activities:
-        total_calories_per_week += (calorie_burn_rate[activity.name] * goal.available_time_per_week / len(endurance_activities))
+        total_calories_per_week += (calorie_burn_rate[activity.name] * goal.available_time_per_week / len(weightloss_activities))
 
     weeks_needed = total_calories_needed / total_calories_per_week
     weeks_needed = max(1, int(weeks_needed)) 
