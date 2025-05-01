@@ -7,7 +7,7 @@
 
 {% block dashboard_content %}
 
-<pre>{{ activity_types | pprint }}</pre>
+
 <!-- Current Goals -->
 <div class="row">
     <div class="col-12">
@@ -18,7 +18,14 @@
                     <i class="fas fa-plus"></i> New Session
                 </button>
             </div>
-            <div class="card-body">
+            {% if sessions|length == 0 %}
+            <div class="text-center py-4 car-boby">
+                <p class="mb-0">You don't have any activity sessions yet. Click the 'New Session' button to create one.</p>
+            </div>
+            {% else %}
+            <div id="sessionContainer" class="mt-4"></div>
+            {% endif %}
+            <!-- <div class="card-body">
                 {% if activity_sessions %}
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -89,7 +96,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
 <!-- Goal Insights -->
 <div class="row">
@@ -127,20 +134,20 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createGoalModalLabel">Create New Goal</h5>
+                <h5 class="modal-title text-light" id="createGoalModalLabel">Create New Goal</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="createGoalForm">
                     <!-- Activity Type -->
                     <div class="mb-3">
-                        <label for="activityType" class="form-label">Activity Type</label>
+                        <label for="activityType" class="form-label text-light">Activity Type</label>
                         <select class="form-select" id="activityType" required>
                             <option value="" selected disabled>Select activity type</option>
                             {% for activity_type in activity_types %}
                             <option value="{{ activity_type.id }}">{{ activity_type.name }}</option>
                             {% endfor %}
-                        </select>
+                        </select>   
                         <div class="form-text">
                             Choose the type of physical activity you plan to focus on.
                         </div>
@@ -148,7 +155,7 @@
 
                     <!-- Goal Type -->
                     <div class="mb-3">
-                        <label for="goalType" class="form-label">Goal Type</label>
+                        <label for="goalType" class="form-label text-light">Goal Type</label>
                         <select class="form-select" id="goalType" required>
                             <option value="" selected disabled>Select goal type</option>
                             <option value="weightloss">Weight Loss</option>
@@ -163,7 +170,7 @@
 
                     <!-- Target Value (conditionally visible) -->
                     <div class="mb-3" id="targetValueGroup" style="display: none;">
-                        <label for="targetValue" class="form-label">Target Value</label>
+                        <label for="targetValue" class="form-label text-light">Target Value</label>
                         <input type="number" class="form-control" id="targetValue" min="1" step="0.01">
                         <div class="form-text" id="targetValueHelp">
                             Enter your target body weight (in kg or lbs) or the amount of weight to lose or gain.
@@ -172,7 +179,7 @@
 
                     <!-- Fitness Level -->
                     <div class="mb-3">
-                        <label for="fitnessLevel" class="form-label">Fitness Level</label>
+                        <label for="fitnessLevel" class="form-label text-light">Fitness Level</label>
                         <select class="form-select" id="fitnessLevel" required>
                             <option value="" selected disabled>Select your current fitness level</option>
                             <option value="beginner">Beginner</option>
@@ -188,7 +195,7 @@
 
                     <!-- Available Time Per Week -->
                     <div class="mb-3">
-                        <label for="availableTime" class="form-label">Available Time Per Week (in hours)</label>
+                        <label for="availableTime" class="form-label text-light">Available Time Per Week (in hours)</label>
                         <input type="number" class="form-control" id="availableTime" min="1" max="168" step="0.5" required>
                         <div class="form-text">
                             How many hours can you dedicate to training per week? (Helps personalize recommendations)
@@ -197,7 +204,7 @@
 
                     <!-- End Date -->
                     <div class="mb-3">
-                        <label for="endDate" class="form-label">End Date (Optional)</label>
+                        <label for="endDate" class="form-label text-light">End Date (Optional)</label>
                         <input type="date" class="form-control" id="endDate">
                         <div class="form-text">
                             Leave empty if this is an ongoing goal with no specific end date.
@@ -362,45 +369,144 @@
         });
     }
     
-    async function createGoal() {
-        const activityTypeId = document.getElementById('activityType').value;
-        const goalType = document.getElementById('goalType').value;
-        const targetValue = document.getElementById('targetValue').value;
-        const endDate = document.getElementById('endDate').value;
-        
-        if (!activityTypeId || !goalType || !targetValue) {
-            alert('Please fill in all required fields');
-            return;
+    function updateGoalUI(data) {
+    console.log(data, "data")
+    const container = document.getElementById('sessionContainer');
+    container.innerHTML = ''; 
+
+    
+    const grouped = {};
+
+    data.sessions.forEach(session => {
+        const goalType = session.goal_type?.name || 'Unknown';
+        if (!grouped[goalType]) {
+            grouped[goalType] = [];
         }
-        
-        const goalData = {
-            activity_type_id: parseInt(activityTypeId),
-            goal_type: goalType,
-            target_value: parseFloat(targetValue),
-            end_date: endDate || null
-        };
-        
-        try {
-            const response = await fetch('/api/create-goal', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(goalData)
-            });
+        grouped[goalType].push(session);
+    });
+
+    
+    for (const [goalType, sessions] of Object.entries(grouped)) {
+        const section = document.createElement('div');
+        section.className = 'mb-4';
+
+        const header = document.createElement('h4');
+        header.textContent = `Goal Type: ${goalType}`;
+        section.appendChild(header);
+
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        sessions.forEach(session => {
+            const activityName = session.activity_type?.name?.toLowerCase() || '';
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
+
+            const card = document.createElement('div');
+            card.className = 'card mb-3 shadow-sm';
+
+            const body = document.createElement('div');
+            body.className = 'card-body';
+
+            body.innerHTML = `
+                <h5 class="card-title">${session.activity_type?.name || 'Unknown'}</h5>
+                <p class="card-text"><strong>Start:</strong> ${formatDateTime(session.start_time)}</p>
+                <p class="card-text"><strong>End:</strong> ${session.end_time ? formatDateTime(session.end_time) : 'Ongoing'}</p>
+                <p class="card-text"><strong>Completed:</strong> ${session.is_completed ? 'Yes' : 'No'}</p>
+            `;
+
             
-            if (response.ok) {
-                // Reload the page to show the new goal
-                const result = await response.json();
-            } else {
-                const error = await response.json();
-                alert(`Error creating goal: ${error.error}`);
+            const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
+            const strengthTypes = [
+                'barbell squat', 'bench press', 'deadlift',
+                'chin-up', 'military press', 'push-up'
+            ];
+
+            if (cardioTypes.includes(activityName)) {
+                body.innerHTML += `
+                    <p class="card-text"><strong>Duration:</strong> ${formatDuration(session.duration)}</p>
+                    <p class="card-text"><strong>Calories:</strong> ${session.calories_burned ?? 'N/A'}</p>
+                `;
+            } else if (strengthTypes.includes(activityName)) {
+                body.innerHTML += `
+                    <p class="card-text"><strong>Sets:</strong> ${session.sets ?? 'N/A'}</p>
+                    <p class="card-text"><strong>Reps:</strong> ${session.reps ?? 'N/A'}</p>
+                `;
             }
-        } catch (error) {
-            console.error('Error creating goal:', error);
-            alert('Error creating goal. Please try again.');
+
+            card.appendChild(body);
+            col.appendChild(card);
+            row.appendChild(col);
+        });
+
+        section.appendChild(row);
+        container.appendChild(section);
+    }
+}
+
+    function formatDateTime(isoString) {
+        const dt = new Date(isoString);
+        return dt.toLocaleString();
+    }
+
+    function formatDuration(durationStr) {
+        try {
+            const duration = JSON.parse(durationStr);
+            const minutes = duration?.seconds ? Math.floor(duration.seconds / 60) : 0;
+            return `${minutes} minutes`;
+        } catch {
+            return 'N/A';
         }
     }
+
+    async function createGoal() {
+    const activityTypeId = document.getElementById('activityType').value;
+    const goalType = document.getElementById('goalType').value;
+    const targetValue = document.getElementById('targetValue').value;
+    const fitnessLevel = document.getElementById('fitnessLevel').value;
+    const availableTime = document.getElementById('availableTime').value;
+    const endDate = document.getElementById('endDate').value;
+
+    if (!activityTypeId || !goalType || !fitnessLevel || !availableTime) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    const goalData = {
+        activity_type_id: parseInt(activityTypeId),
+        goal_type: goalType,
+        target_value: (goalType === 'weightloss' || goalType === 'weightgain') ? parseFloat(targetValue) : null,
+        fitness_level: fitnessLevel,
+        available_time_per_week: parseFloat(availableTime),
+        end_date: endDate || null
+    };
+    console.log(goalData,"goalData")
+    console.log(goalData.goal_type,"goalData.goal_type")
+      
+
+    try {
+        const response = await fetch('/dashboard/api/create-goal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(goalData)
+        });
+        // const text = await response.text();  
+        // console.log('Raw response:', text); 
+
+        if (response.ok) {
+            const result = await response.json();
+            updateGoalUI(result);
+        } else {
+            const error = await response.json();
+            alert(`Error creating goal: ${error.error}`);
+        }
+    } catch (error) {
+        console.error('Error creating goal:', error);
+        alert('Error creating goal. Please try again.');
+    }
+}
     
     async function updateGoal() {
         const goalId = document.getElementById('editGoalId').value;
@@ -463,104 +569,104 @@
     }
     
     function setupGoalCharts() {
-        // Set up the goal distribution chart
-        const distributionCtx = document.getElementById('goalDistributionChart').getContext('2d');
+        // // Set up the goal distribution chart
+        // const distributionCtx = document.getElementById('goalDistributionChart').getContext('2d');
         
-        // Extract data for charts
-        const goalsByActivityType = {};
-        const goalCompletionData = {
-            completed: 0,
-            inProgress: 0
-        };
+        // // Extract data for charts
+        // const goalsByActivityType = {};
+        // const goalCompletionData = {
+        //     completed: 0,
+        //     inProgress: 0
+        // };
         
-        {% for goal in goals %}
-            // Add to the activity type count
-            const activityName = "{{ goal.activity_type.name }}";
-            if (goalsByActivityType[activityName]) {
-                goalsByActivityType[activityName]++;
-            } else {
-                goalsByActivityType[activityName] = 1;
-            }
+        // {% for goal in goals %}
+        //     // Add to the activity type count
+        //     const activityName2 = "{{ goal.activity_type.name }}";
+        //     if (goalsByActivityType[activityName2]) {
+        //         goalsByActivityType[activityName2]++;
+        //     } else {
+        //         goalsByActivityType[activityName2] = 1;
+        //     }
             
-            // Add to the completion data
-            if ({{ goal.is_completed|lower }}) {
-                goalCompletionData.completed++;
-            } else {
-                goalCompletionData.inProgress++;
-            }
-        {% endfor %}
+        //     // Add to the completion data
+        //     if ({{ goal.is_completed|lower }}) {
+        //         goalCompletionData.completed++;
+        //     } else {
+        //         goalCompletionData.inProgress++;
+        //     }
+        // {% endfor %}
         
-        // Create pie chart for goal distribution
-        new Chart(distributionCtx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(goalsByActivityType),
-                datasets: [{
-                    data: Object.values(goalsByActivityType),
-                    backgroundColor: [
-                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
-                        '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
-                    ],
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
-                                const percentage = Math.round((value / total) * 100);
-                                return `${label}: ${value} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // // Create pie chart for goal distribution
+        // new Chart(distributionCtx, {
+        //     type: 'pie',
+        //     data: {
+        //         labels: Object.keys(goalsByActivityType),
+        //         datasets: [{
+        //             data: Object.values(goalsByActivityType),
+        //             backgroundColor: [
+        //                 '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+        //                 '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
+        //             ],
+        //         }]
+        //     },
+        //     options: {
+        //         responsive: true,
+        //         maintainAspectRatio: false,
+        //         plugins: {
+        //             legend: {
+        //                 position: 'bottom'
+        //             },
+        //             tooltip: {
+        //                 callbacks: {
+        //                     label: (context) => {
+        //                         const label = context.label || '';
+        //                         const value = context.raw || 0;
+        //                         const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+        //                         const percentage = Math.round((value / total) * 100);
+        //                         return `${label}: ${value} (${percentage}%)`;
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
         
-        // Create bar chart for goal completion
-        const completionCtx = document.getElementById('goalCompletionChart').getContext('2d');
-        new Chart(completionCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Goal Status'],
-                datasets: [
-                    {
-                        label: 'Completed',
-                        data: [goalCompletionData.completed],
-                        backgroundColor: '#1cc88a'
-                    },
-                    {
-                        label: 'In Progress',
-                        data: [goalCompletionData.inProgress],
-                        backgroundColor: '#4e73df'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        stacked: true
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
-            }
-        });
+        // // Create bar chart for goal completion
+        // const completionCtx = document.getElementById('goalCompletionChart').getContext('2d');
+        // new Chart(completionCtx, {
+        //     type: 'bar',
+        //     data: {
+        //         labels: ['Goal Status'],
+        //         datasets: [
+        //             {
+        //                 label: 'Completed',
+        //                 data: [goalCompletionData.completed],
+        //                 backgroundColor: '#1cc88a'
+        //             },
+        //             {
+        //                 label: 'In Progress',
+        //                 data: [goalCompletionData.inProgress],
+        //                 backgroundColor: '#4e73df'
+        //             }
+        //         ]
+        //     },
+        //     options: {
+        //         responsive: true,
+        //         maintainAspectRatio: false,
+        //         scales: {
+        //             x: {
+        //                 stacked: true
+        //             },
+        //             y: {
+        //                 stacked: true,
+        //                 beginAtZero: true,
+        //                 ticks: {
+        //                     stepSize: 1
+        //                 }
+        //             }
+        //         }
+        //     }
+        // });
     }
 </script>
 {% endblock %}
