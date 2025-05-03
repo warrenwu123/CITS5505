@@ -1,0 +1,186 @@
+/* Main Styling */
+:root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4cc9f0;
+    --success-color: #4CAF50;
+    --light-bg: #f8f9fa;
+    --dark-bg: #212529;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--light-bg);
+    color: var(--dark-bg);
+}
+
+/* Navigation */
+.navbar-brand i {
+    margin-right: 0.5rem;
+}
+
+/* User avatar in navbar */
+.avatar-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Hero Section */
+.hero-section {
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.carousel-item img {
+    height: 400px;
+    object-fit: cover;
+}
+
+.carousel-caption {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    padding: 15px;
+}
+
+/* Section Headers */
+.section-header h2 {
+    color: var(--primary-color);
+    font-weight: 600;
+    border-color: var(--primary-color) !important;
+}
+
+/* Activity Cards */
+.activity-card {
+    transition: transform 0.3s ease;
+    border-radius: 10px;
+    border: none;
+}
+
+.activity-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.activity-card i {
+    color: var(--primary-color);
+}
+
+/* Functionality Cards */
+.functionality-card {
+    border-radius: 10px;
+    border: none;
+    transition: transform 0.3s ease;
+}
+
+.functionality-card:hover {
+    transform: translateY(-5px);
+}
+
+.functionality-card .card-header {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+/* Exercise Tutorial Animations */
+.tutorial-animation-container {
+    height: 200px;
+    background-color: rgba(67, 97, 238, 0.1);
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;
+}
+
+.push-up-animation,
+.squat-animation,
+.jumping-jack-animation,
+.hamstring-stretch-animation,
+.tree-pose-animation,
+.plank-animation {
+    width: 100%;
+    height: 180px;
+}
+
+.tutorial-animation-large {
+    width: 100%;
+    height: 300px;
+}
+
+/* Animation fallback */
+.animation-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--secondary-color);
+}
+
+/* Exercise filter buttons */
+.exercise-filter {
+    margin: 0 5px;
+    border-radius: 20px;
+    padding: 5px 15px;
+    transition: all 0.3s ease;
+}
+
+.exercise-filter.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Exercise cards */
+.exercise-item {
+    transition: all 0.3s ease;
+}
+
+.exercise-item .card {
+    transition: transform 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.exercise-item .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.exercise-item .badge {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    border-radius: 12px;
+}
+
+/* Modal animations */
+.modal .modal-content {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.push-up-animation-modal,
+.squat-animation-modal {
+    background-color: rgba(67, 97, 238, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .carousel-item img {
+        height: 300px;
+    }
+    
+    .tutorial-animation-large {
+        height: 250px;
+    }
+}
+
+@media (max-width: 576px) {
+    .carousel-item img {
+        height: 200px;
+    }
+    
+    .tutorial-animation-large {
+        height: 200px;
+    }
+}

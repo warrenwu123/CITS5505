@@ -1,0 +1,197 @@
+{% extends 'dashboard/layout.html' %}
+
+{% set active_page = 'achievements' %}
+
+{% block dashboard_title %}Your Achievements{% endblock %}
+
+{% block dashboard_content %}
+<!-- User Achievements Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Your Earned Achievements</h6>
+                <span class="badge bg-primary">{{ user_achievements|length }} / {{ all_achievements|length }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if user_achievements %}
+                        {% for user_achievement in user_achievements %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-left-success h-100">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col-auto me-3">
+                                            <i class="{{ user_achievement.achievement.icon }} fa-2x text-success"></i>
+                                        </div>
+                                        <div class="col">
+                                            <div class="font-weight-bold text-success text-uppercase mb-1">
+                                                {{ user_achievement.achievement.title }}
+                                            </div>
+                                            <div class="text-xs mb-2">Earned on {{ user_achievement.earned_at.strftime('%B %d, %Y') }}</div>
+                                            <div class="small">{{ user_achievement.achievement.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12 text-center py-4">
+                            <p>You haven't earned any achievements yet. Keep working out to unlock them!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Available Achievements Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Available Achievements</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% set earned_ids = user_achievements|map(attribute='achievement_id')|list %}
+                    {% for achievement in all_achievements %}
+                        {% if achievement.id not in earned_ids %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-left-secondary h-100">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col-auto me-3">
+                                            <i class="{{ achievement.icon }} fa-2x text-secondary"></i>
+                                        </div>
+                                        <div class="col">
+                                            <div class="font-weight-bold text-secondary text-uppercase mb-1">
+                                                {{ achievement.title }}
+                                            </div>
+                                            <div class="small">{{ achievement.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Achievement Analytics -->
+<div class="row mt-4">
+    <!-- Achievement Progress -->
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Achievement Progress</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie">
+                    <canvas id="achievementProgressChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="me-2">
+                        <i class="fas fa-circle text-success"></i> Earned
+                    </span>
+                    <span class="me-2">
+                        <i class="fas fa-circle text-secondary"></i> Remaining
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Achievement Timeline -->
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Achievement Timeline</h6>
+            </div>
+            <div class="card-body">
+                {% if user_achievements %}
+                <div class="timeline-achievements">
+                    {% for user_achievement in user_achievements|sort(attribute='earned_at', reverse=true) %}
+                    <div class="achievement-timeline-item d-flex mb-3">
+                        <div class="timeline-date me-3 text-nowrap">
+                            {{ user_achievement.earned_at.strftime('%b %d, %Y') }}
+                        </div>
+                        <div class="timeline-icon me-3">
+                            <i class="{{ user_achievement.achievement.icon }} fa-fw text-success"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="fw-bold">{{ user_achievement.achievement.title }}</div>
+                            <div class="small">{{ user_achievement.achievement.description }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p>No achievements unlocked yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up achievement progress chart
+        setupAchievementChart();
+    });
+    
+    function setupAchievementChart() {
+        const ctx = document.getElementById('achievementProgressChart').getContext('2d');
+        
+        // Calculate achievement statistics
+        const earnedCount = {{ user_achievements|length }};
+        const totalCount = {{ all_achievements|length }};
+        const remainingCount = totalCount - earnedCount;
+        
+        // Create the chart
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Earned', 'Remaining'],
+                datasets: [{
+                    data: [earnedCount, remainingCount],
+                    backgroundColor: ['#1cc88a', '#858796'],
+                    hoverBackgroundColor: ['#17a673', '#6e707e'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                const label = tooltipItem.label || '';
+                                const value = tooltipItem.raw || 0;
+                                const percentage = Math.round((value / totalCount) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+</script>
+{% endblock %}

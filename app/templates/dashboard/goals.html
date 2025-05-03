@@ -1,0 +1,566 @@
+{% extends 'dashboard/layout.html' %}
+
+{% set active_page = 'goals' %}
+
+{% block dashboard_title %}Your Goals{% endblock %}
+
+
+{% block dashboard_content %}
+
+<pre>{{ activity_types | pprint }}</pre>
+<!-- Current Goals -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Current Activity Sessions</h6>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGoalModal">
+                    <i class="fas fa-plus"></i> New Session
+                </button>
+            </div>
+            <div class="card-body">
+                {% if activity_sessions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Activity</th>
+                                <th>Goal Type</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Duration</th>
+                                <th>Calories Burned</th>
+                                <th>Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessions-table-body">
+                            {% for session in activity_sessions %}
+                            <tr id="session-row-{{ session.id }}">
+                                <td>{{ session.activity_type.name }}</td>
+                                <td>{{ session.goal_type.name if session.goal_type else 'N/A' }}</td>
+                                <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ session.end_time.strftime('%Y-%m-%d %H:%M') if session.end_time else 'Ongoing' }}</td>
+                                <td>
+                                    {% if session.duration %}
+                                        {{ (session.duration.total_seconds() // 60)|int }} minutes
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>{{ session.calories_burned if session.calories_burned else 'N/A' }}</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar {{ 'bg-success' if session.is_completed else '' }}" 
+                                             role="progressbar" 
+                                             style="width: {{ 100 if session.is_completed else 50 }}%" 
+                                             aria-valuenow="{{ 100 if session.is_completed else 50 }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ 100 if session.is_completed else 50 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info edit-session-btn" 
+                                            data-session-id="{{ session.id }}"
+                                            data-activity-type="{{ session.activity_type.id }}"
+                                            data-goal-type="{{ session.goal_type.id if session.goal_type else '' }}"
+                                            data-start-time="{{ session.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+                                            data-end-time="{{ session.end_time.strftime('%Y-%m-%dT%H:%M') if session.end_time else '' }}"
+                                            data-duration="{{ session.duration.total_seconds() if session.duration else '' }}"
+                                            data-calories="{{ session.calories_burned if session.calories_burned else '' }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-0">You don't have any activity sessions yet. Click the 'New Session' button to create one.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goal Insights -->
+<div class="row">
+    <!-- Goal Distribution -->
+    <div class="col-xl-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Goals by Activity Type</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie">
+                    <canvas id="goalDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Goal Completion Rate -->
+    <div class="col-xl-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Goal Completion History</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-bar">
+                    <canvas id="goalCompletionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Goal Modal -->
+<div class="modal fade" id="createGoalModal" tabindex="-1" aria-labelledby="createGoalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createGoalModalLabel">Create New Goal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createGoalForm">
+                    <!-- Activity Type -->
+                    <div class="mb-3">
+                        <label for="activityType" class="form-label">Activity Type</label>
+                        <select class="form-select" id="activityType" required>
+                            <option value="" selected disabled>Select activity type</option>
+                            {% for activity_type in activity_types %}
+                            <option value="{{ activity_type.id }}">{{ activity_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Choose the type of physical activity you plan to focus on.
+                        </div>
+                    </div>
+
+                    <!-- Goal Type -->
+                    <div class="mb-3">
+                        <label for="goalType" class="form-label">Goal Type</label>
+                        <select class="form-select" id="goalType" required>
+                            <option value="" selected disabled>Select goal type</option>
+                            <option value="weightloss">Weight Loss</option>
+                            <option value="weightgain">Weight Gain</option>
+                            <option value="strength">Strength</option>
+                            <option value="flexibility">Flexibility / Endurance</option>
+                        </select>
+                        <div class="form-text">
+                            What kind of outcome do you want to achieve through your training?
+                        </div>
+                    </div>
+
+                    <!-- Target Value (conditionally visible) -->
+                    <div class="mb-3" id="targetValueGroup" style="display: none;">
+                        <label for="targetValue" class="form-label">Target Value</label>
+                        <input type="number" class="form-control" id="targetValue" min="1" step="0.01">
+                        <div class="form-text" id="targetValueHelp">
+                            Enter your target body weight (in kg or lbs) or the amount of weight to lose or gain.
+                        </div>
+                    </div>
+
+                    <!-- Fitness Level -->
+                    <div class="mb-3">
+                        <label for="fitnessLevel" class="form-label">Fitness Level</label>
+                        <select class="form-select" id="fitnessLevel" required>
+                            <option value="" selected disabled>Select your current fitness level</option>
+                            <option value="beginner">Beginner</option>
+                            <option value="novice">Novice</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                            <option value="elite">Elite</option>
+                        </select>
+                        <div class="form-text">
+                            Helps tailor your goal based on your experience level and physical conditioning.
+                        </div>
+                    </div>
+
+                    <!-- Available Time Per Week -->
+                    <div class="mb-3">
+                        <label for="availableTime" class="form-label">Available Time Per Week (in hours)</label>
+                        <input type="number" class="form-control" id="availableTime" min="1" max="168" step="0.5" required>
+                        <div class="form-text">
+                            How many hours can you dedicate to training per week? (Helps personalize recommendations)
+                        </div>
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="endDate">
+                        <div class="form-text">
+                            Leave empty if this is an ongoing goal with no specific end date.
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveGoalBtn">Create Goal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Goal Modal -->
+<div class="modal fade" id="editGoalModal" tabindex="-1" aria-labelledby="editGoalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editGoalModalLabel">Edit Goal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editGoalForm">
+                    <input type="hidden" id="editGoalId">
+                    <div class="mb-3">
+                        <label for="editActivityType" class="form-label">Activity Type</label>
+                        <select class="form-select" id="editActivityType" disabled>
+                            {% for activity_type in activity_types %}
+                            <option value="{{ activity_type.id }}">{{ activity_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Activity type cannot be changed once a goal is created
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editGoalType" class="form-label">Goal Type</label>
+                        <select class="form-select" id="editGoalType" disabled>
+                            <option value="distance">Distance</option>
+                            <option value="duration">Duration</option>
+                            <option value="reps">Repetitions</option>
+                            <option value="calories">Calories</option>
+                        </select>
+                        <div class="form-text">
+                            Goal type cannot be changed once a goal is created
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTargetValue" class="form-label">Target Value</label>
+                        <input type="number" class="form-control" id="editTargetValue" required min="1" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEndDate" class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="editEndDate">
+                        <div class="form-text">
+                            If not specified, this will be an ongoing goal
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editIsCompleted">
+                        <label class="form-check-label" for="editIsCompleted">Mark as completed</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateGoalBtn">Update Goal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Goal Confirmation Modal -->
+<div class="modal fade" id="deleteGoalModal" tabindex="-1" aria-labelledby="deleteGoalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteGoalModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this goal? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Goal</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    // Global variables
+    let deleteGoalId = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up chart data if there are goals
+        {% if goals %}
+            setupGoalCharts();
+        {% endif %}
+        
+        // Set up event listeners
+        document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
+        document.getElementById('updateGoalBtn').addEventListener('click', updateGoal);
+        document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
+        
+        // Set up edit buttons
+        setupEditButtons();
+        setupDeleteButtons();
+    });
+
+    document.getElementById('goalType').addEventListener('change', function () {
+    const selected = this.value;
+    const targetGroup = document.getElementById('targetValueGroup');
+    if (selected === 'weightloss' || selected === 'weightgain') {
+        targetGroup.style.display = 'block';
+    } else {
+        targetGroup.style.display = 'none';
+    }
+});
+    
+    function setupEditButtons() {
+        const editButtons = document.querySelectorAll('.edit-goal-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const goalId = this.getAttribute('data-goal-id');
+                const activityType = this.getAttribute('data-activity-type');
+                const goalType = this.getAttribute('data-goal-type');
+                const targetValue = this.getAttribute('data-target-value');
+                const endDate = this.getAttribute('data-end-date');
+                
+                // Populate the edit modal
+                document.getElementById('editGoalId').value = goalId;
+                document.getElementById('editActivityType').value = activityType;
+                document.getElementById('editGoalType').value = goalType;
+                document.getElementById('editTargetValue').value = targetValue;
+                document.getElementById('editEndDate').value = endDate;
+                
+                // Show the modal
+                const editModal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+                editModal.show();
+            });
+        });
+    }
+    
+    function setupDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('.delete-goal-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                deleteGoalId = this.getAttribute('data-goal-id');
+                
+                // Show the confirmation modal
+                const deleteModal = new bootstrap.Modal(document.getElementById('deleteGoalModal'));
+                deleteModal.show();
+            });
+        });
+    }
+    
+    async function createGoal() {
+        const activityTypeId = document.getElementById('activityType').value;
+        const goalType = document.getElementById('goalType').value;
+        const targetValue = document.getElementById('targetValue').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!activityTypeId || !goalType || !targetValue) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const goalData = {
+            activity_type_id: parseInt(activityTypeId),
+            goal_type: goalType,
+            target_value: parseFloat(targetValue),
+            end_date: endDate || null
+        };
+        
+        try {
+            const response = await fetch('/api/create-goal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(goalData)
+            });
+            
+            if (response.ok) {
+                // Reload the page to show the new goal
+                const result = await response.json();
+            } else {
+                const error = await response.json();
+                alert(`Error creating goal: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error creating goal:', error);
+            alert('Error creating goal. Please try again.');
+        }
+    }
+    
+    async function updateGoal() {
+        const goalId = document.getElementById('editGoalId').value;
+        const targetValue = document.getElementById('editTargetValue').value;
+        const endDate = document.getElementById('editEndDate').value;
+        const isCompleted = document.getElementById('editIsCompleted').checked;
+        
+        if (!targetValue) {
+            alert('Please provide a target value');
+            return;
+        }
+        
+        const goalData = {
+            target_value: parseFloat(targetValue),
+            end_date: endDate || null,
+            is_completed: isCompleted
+        };
+        
+        try {
+            const response = await fetch(`/api/goals/${goalId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(goalData)
+            });
+            
+            if (response.ok) {
+                // Reload the page to show the updated goal
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert(`Error updating goal: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error updating goal:', error);
+            alert('Error updating goal. Please try again.');
+        }
+    }
+    
+    async function deleteGoal() {
+        if (!deleteGoalId) return;
+        
+        try {
+            const response = await fetch(`/api/goals/${deleteGoalId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Reload the page to update the goals list
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert(`Error deleting goal: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error deleting goal:', error);
+            alert('Error deleting goal. Please try again.');
+        }
+    }
+    
+    function setupGoalCharts() {
+        // Set up the goal distribution chart
+        const distributionCtx = document.getElementById('goalDistributionChart').getContext('2d');
+        
+        // Extract data for charts
+        const goalsByActivityType = {};
+        const goalCompletionData = {
+            completed: 0,
+            inProgress: 0
+        };
+        
+        {% for goal in goals %}
+            // Add to the activity type count
+            const activityName = "{{ goal.activity_type.name }}";
+            if (goalsByActivityType[activityName]) {
+                goalsByActivityType[activityName]++;
+            } else {
+                goalsByActivityType[activityName] = 1;
+            }
+            
+            // Add to the completion data
+            if ({{ goal.is_completed|lower }}) {
+                goalCompletionData.completed++;
+            } else {
+                goalCompletionData.inProgress++;
+            }
+        {% endfor %}
+        
+        // Create pie chart for goal distribution
+        new Chart(distributionCtx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(goalsByActivityType),
+                datasets: [{
+                    data: Object.values(goalsByActivityType),
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                        '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf'
+                    ],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Create bar chart for goal completion
+        const completionCtx = document.getElementById('goalCompletionChart').getContext('2d');
+        new Chart(completionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Goal Status'],
+                datasets: [
+                    {
+                        label: 'Completed',
+                        data: [goalCompletionData.completed],
+                        backgroundColor: '#1cc88a'
+                    },
+                    {
+                        label: 'In Progress',
+                        data: [goalCompletionData.inProgress],
+                        backgroundColor: '#4e73df'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

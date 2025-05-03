@@ -36,3 +36,5 @@ Thumbs.db
 
 # Ignore picture files in static/profile_pics
 app/static/profile_pics/*
+
+*.db

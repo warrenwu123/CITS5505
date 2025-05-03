@@ -29,7 +29,7 @@ def generate_token(length=32):
 def sign_in():
     """Handle user sign in"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = SignInForm()
     
@@ -54,7 +54,7 @@ def sign_in():
         flash('Signed in successfully!', 'success')
         
         next_page = request.args.get('next')
-        return redirect(next_page or url_for('auth.profile'))
+        return redirect(next_page or url_for('dashboard.profile'))
     
     return render_template('sign_in.html', form=form)
 
@@ -62,7 +62,7 @@ def sign_in():
 def sign_up():
     """Handle user registration"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = SignUpForm()
     
@@ -139,7 +139,7 @@ def verify_email(token):
 def forgot_password():
     """Handle password reset request"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = ForgotPasswordForm()
     
@@ -178,7 +178,7 @@ def forgot_password():
 def reset_password(token):
     """Handle password reset with token"""
     if current_user.is_authenticated:
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     reset_token = PasswordResetToken.query.filter_by(token=token).first()
     
@@ -214,7 +214,7 @@ def setup_mfa():
     """Set up multi-factor authentication"""
     if current_user.has_mfa:
         flash('MFA is already enabled for your account', 'info')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     form = MFASetupForm()
     
@@ -244,7 +244,7 @@ def setup_mfa():
         session.pop('mfa_secret', None)
         
         flash('Multi-factor authentication has been enabled for your account!', 'success')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     return render_template('setup_mfa.html', form=form, qr_code=qr_code, secret=session['mfa_secret'])
 
@@ -279,7 +279,7 @@ def verify_mfa():
             flash('Signed in successfully!', 'success')
             
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('auth.profile'))
+            return redirect(next_page or url_for('dashboard.profile'))
         else:
             flash('Invalid authentication code', 'danger')
     
@@ -352,11 +352,11 @@ def disable_mfa():
     """Disable MFA for the current user"""
     if not current_user.has_mfa:
         flash('MFA is not enabled for your account', 'info')
-        return redirect(url_for('auth.profile'))
+        return redirect(url_for('dashboard.profile'))
     
     current_user.has_mfa = False
     current_user.mfa_secret = None
     db.session.commit()
     
     flash('Multi-factor authentication has been disabled for your account.', 'success')
-    return redirect(url_for('auth.profile'))
+    return redirect(url_for('dashboard.profile'))
