@@ -3,30 +3,25 @@ import logging
 import datetime
 
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy 
-from sqlalchemy import MetaData
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Create base class for SQLAlchemy models
-db = SQLAlchemy(metadata=MetaData(naming_convention={
-    'pk': 'pk_%(table_name)s',
-    'fk': 'fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s',
-    'ix': 'ix_%(table_name)s_%(column_0_name)s',
-    'uq': 'uq_%(table_name)s_%(column_0_name)s',
-    'ck': 'ck_%(table_name)s_%(constraint_name)s',
-}))
-# Initialize extensions 
+class Base(DeclarativeBase):
+    pass
+
+# Initialize extensions
+db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 mail = Mail()
 migrate = Migrate()
-
 
 # Create Flask app
 app = Flask(__name__)
@@ -57,15 +52,18 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
 # Create database tables
-
+with app.app_context():
+    # Import models to ensure they're registered with SQLAlchemy
+    from .models import User, MFAToken, PasswordResetToken, EmailVerificationToken
+    db.create_all()
 
 # Import and register blueprints
 from .auth import auth_bp
-from .dashboard import dashboard_bp
-from .profile import profile_bp 
 app.register_blueprint(auth_bp)
+
+# Import and register the profile blueprint
+from .profile import profile_bp 
 app.register_blueprint(profile_bp)
-app.register_blueprint(dashboard_bp)
 
 # Load user from user_id stored in the session
 @login_manager.user_loader
@@ -76,20 +74,5 @@ def load_user(user_id):
 # Routes
 @app.route('/')
 def index():
-    from flask import render_template, redirect, url_for
-    from flask_login import current_user
-    
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.sign_in'))
-    
-    return render_template('home.html')
-
-@app.route('/tutorials')
-def tutorials():
-    from flask import render_template, redirect, url_for
-    from flask_login import current_user
-    
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.sign_in'))
-    
-    return render_template('tutorials.html')
+    from flask import redirect, url_for
+    return redirect(url_for('auth.sign_in'))
