@@ -1,11 +1,11 @@
 {% extends 'dashboard/layout.html' %}
-
 {% set active_page = 'achievements' %}
 
 {% block dashboard_title %}Your Achievements{% endblock %}
 
 {% block dashboard_content %}
-<!-- User Achievements Section -->
+
+<!-- Earned Achievements Card Grid -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow">
@@ -22,13 +22,15 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col-auto me-3">
-                                            <i class="{{ user_achievement.achievement.icon }} fa-2x text-success"></i>
+                                            <i class="{{ user_achievement.achievement.icon or 'fas fa-star' }} fa-2x text-success"></i>
                                         </div>
                                         <div class="col">
                                             <div class="font-weight-bold text-success text-uppercase mb-1">
                                                 {{ user_achievement.achievement.title }}
                                             </div>
-                                            <div class="text-xs mb-2">Earned on {{ user_achievement.earned_at.strftime('%B %d, %Y') }}</div>
+                                            <div class="text-xs mb-2">
+                                                Earned on {{ user_achievement.earned_at.strftime('%B %d, %Y') }}
+                                            </div>
                                             <div class="small">{{ user_achievement.achievement.description }}</div>
                                         </div>
                                     </div>
@@ -42,6 +44,19 @@
                         </div>
                     {% endif %}
                 </div>
+				<h2>🏆 Earned Achievements</h2>
+<ul>
+  {% for ua in user_achievements %}
+    <li>
+      <strong>{{ ua.achievement.title }}</strong> - {{ ua.achievement.description }}
+      <small>(Earned at: {{ ua.earned_at.strftime('%Y-%m-%d') }})</small>
+    </li>
+  {% else %}
+    <li>No achievements earned yet.</li>
+  {% endfor %}
+</ul>
+
+<hr>
             </div>
         </div>
     </div>
@@ -55,8 +70,16 @@
                 <h6 class="m-0 font-weight-bold text-primary">Available Achievements</h6>
             </div>
             <div class="card-body">
+				<h2>📋 Unearned Achievements</h2>
+<ul>
+  {% for a in unearned_achievements %}
+    <li><strong>{{ a.title }}</strong> - {{ a.description }}</li>
+  {% else %}
+    <li>All achievements unlocked!</li>
+  {% endfor %}
+</ul>
                 <div class="row">
-                    {% set earned_ids = user_achievements|map(attribute='achievement_id')|list %}
+                    {% set earned_ids = user_achievements | map(attribute='achievement_id') | list %}
                     {% for achievement in all_achievements %}
                         {% if achievement.id not in earned_ids %}
                         <div class="col-md-4 mb-4">
@@ -64,7 +87,7 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col-auto me-3">
-                                            <i class="{{ achievement.icon }} fa-2x text-secondary"></i>
+                                            <i class="{{ achievement.icon or 'fas fa-star' }} fa-2x text-secondary"></i>
                                         </div>
                                         <div class="col">
                                             <div class="font-weight-bold text-secondary text-uppercase mb-1">
@@ -84,9 +107,9 @@
     </div>
 </div>
 
-<!-- Achievement Analytics -->
+<!-- Analytics Section -->
 <div class="row mt-4">
-    <!-- Achievement Progress -->
+    <!-- Progress Chart -->
     <div class="col-lg-6">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -107,8 +130,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Achievement Timeline -->
+
+    <!-- Timeline -->
     <div class="col-lg-6">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
@@ -117,17 +140,17 @@
             <div class="card-body">
                 {% if user_achievements %}
                 <div class="timeline-achievements">
-                    {% for user_achievement in user_achievements|sort(attribute='earned_at', reverse=true) %}
+                    {% for ua in user_achievements | sort(attribute='earned_at', reverse=True) %}
                     <div class="achievement-timeline-item d-flex mb-3">
                         <div class="timeline-date me-3 text-nowrap">
-                            {{ user_achievement.earned_at.strftime('%b %d, %Y') }}
+                            {{ ua.earned_at.strftime('%b %d, %Y') }}
                         </div>
                         <div class="timeline-icon me-3">
-                            <i class="{{ user_achievement.achievement.icon }} fa-fw text-success"></i>
+                            <i class="{{ ua.achievement.icon or 'fas fa-star' }} fa-fw text-success"></i>
                         </div>
                         <div class="timeline-content">
-                            <div class="fw-bold">{{ user_achievement.achievement.title }}</div>
-                            <div class="small">{{ user_achievement.achievement.description }}</div>
+                            <div class="fw-bold">{{ ua.achievement.title }}</div>
+                            <div class="small">{{ ua.achievement.description }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -141,20 +164,14 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block dashboard_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Set up achievement progress chart
-        setupAchievementChart();
-    });
-    
-    function setupAchievementChart() {
         const ctx = document.getElementById('achievementProgressChart').getContext('2d');
-        
-        // Calculate achievement statistics
         const earnedCount = {{ user_achievements|length }};
         const totalCount = {{ all_achievements|length }};
         const remainingCount = totalCount - earnedCount;
@@ -176,9 +193,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: function(tooltipItem) {
@@ -231,5 +246,6 @@
             }
         });
     }
+    });
 </script>
 {% endblock %}
