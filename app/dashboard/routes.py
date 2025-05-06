@@ -47,7 +47,8 @@ def achievements():
     
     return render_template('dashboard/achievements.html', 
                            user_achievements=user_achievements,
-                           unearned_achievements=unearned_achievements)
+                           unearned_achievements=unearned_achievements,
+                           all_achievements=all_achievements)
 
 @dashboard_bp.route('/leaderboard')
 @login_required
