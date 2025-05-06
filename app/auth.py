@@ -14,8 +14,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from .models import User, PasswordResetToken, EmailVerificationToken, MFAToken
-from .forms import SignInForm, SignUpForm, ForgotPasswordForm, ResetPasswordForm, MFASetupForm, MFAVerifyForm
+from .forms import SignInForm, SignUpForm, ForgotPasswordForm, ResetPasswordForm, MFASetupForm, MFAVerifyForm, ProfilePictureForm 
 from .email_utils import send_reset_password_email, send_verification_email
+from .utils import save_profile_picture
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -284,11 +285,21 @@ def verify_mfa():
     
     return render_template('verify_mfa.html', form=form)
 
-@auth_bp.route('/profile')
+@auth_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    """User profile page"""
-    return render_template('profile.html')
+    form = ProfilePictureForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        if form.picture.data:
+            picture_file = save_profile_picture(form.picture.data)
+            current_user.profile_image = picture_file
+            db.session.commit()
+
+            flash('Profile picture updated!', 'success')
+            return redirect(url_for('auth.profile'))
+
+    return render_template('profile.html', form=form)
 
 @auth_bp.route('/sign-out')
 @login_required

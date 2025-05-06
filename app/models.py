@@ -12,6 +12,7 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
+    profile_image = db.Column(db.String(255), nullable=True)
     
     # Relationships
     password_reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy=True)

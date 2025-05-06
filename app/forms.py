@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 import re
@@ -94,3 +95,9 @@ class MFAVerifyForm(FlaskForm):
         """Validate that the code contains only digits"""
         if not field.data.isdigit():
             raise ValidationError('Code must contain only numbers')
+
+class ProfilePictureForm(FlaskForm):
+    picture = FileField('Profile Picture', validators=[
+        FileAllowed(['jpg', 'png', 'jpeg'], 'Only JPG or PNG images are allowed')
+    ])
+    submit = SubmitField('Upload')
