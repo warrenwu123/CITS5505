@@ -98,10 +98,10 @@
                 </div>
                 <div class="mt-4 text-center small">
                     <span class="me-2">
-                        <i class="fas fa-circle text-success"></i> Earned
+                        <i class="fas fa-circle text-success"></i> Earned: {{ user_achievements|length }}
                     </span>
                     <span class="me-2">
-                        <i class="fas fa-circle text-secondary"></i> Remaining
+                        <i class="fas fa-circle text-secondary"></i> Remaining: {{ all_achievements|length - user_achievements|length }}
                     </span>
                 </div>
             </div>
@@ -158,6 +158,7 @@
         const earnedCount = {{ user_achievements|length }};
         const totalCount = {{ all_achievements|length }};
         const remainingCount = totalCount - earnedCount;
+        const percentage = Math.round((earnedCount / totalCount) * 100);
         
         // Create the chart
         new Chart(ctx, {
@@ -166,8 +167,8 @@
                 labels: ['Earned', 'Remaining'],
                 datasets: [{
                     data: [earnedCount, remainingCount],
-                    backgroundColor: ['#1cc88a', '#858796'],
-                    hoverBackgroundColor: ['#17a673', '#6e707e'],
+                    backgroundColor: ['rgb(25, 135, 84)', '#858796'],
+                    hoverBackgroundColor: ['#1cc88a', '#6e707e'],
                     hoverBorderColor: "rgba(234, 236, 244, 1)",
                 }]
             },
@@ -190,6 +191,43 @@
                     }
                 },
                 cutout: '70%'
+            }
+        });
+        // Add center text plugin to display overall progress
+        Chart.register({
+            id: 'centerTextPlugin',
+            beforeDraw: function(chart) {
+                const width = chart.width;
+                const height = chart.height;
+                const ctx = chart.ctx;
+                
+                ctx.restore();
+                
+                // Font settings for percentage
+                const fontSize = (height / 114).toFixed(2) * 16;
+                ctx.font = fontSize + 'px sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                
+                // Draw percentage text
+                const text = `${percentage}%`;
+                const textX = width / 2;
+                const textY = height / 2 - fontSize / 2;
+                ctx.fillStyle = 'rgb(25, 135, 84)';
+                ctx.fillText(text, textX, textY);
+                
+                // Font settings for achievement count
+                const smallFontSize = (height / 150).toFixed(2) * 12;
+                ctx.font = smallFontSize + 'px sans-serif';
+                
+                // Draw achievement count text
+                const countText = `${earnedCount} / ${totalCount}`;
+                const countX = width / 2;
+                const countY = height / 2 + fontSize / 2;
+                ctx.fillStyle = '#858796';
+                ctx.fillText(countText, countX, countY);
+                
+                ctx.save();
             }
         });
     }
