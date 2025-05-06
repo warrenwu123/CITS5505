@@ -112,3 +112,46 @@ with app.app_context():
         exists = GoalType.query.filter_by(name=gt['name']).first()
         if not exists:
             db.session.add(GoalType(name=gt['name'], description=gt['description']))
+
+with app.app_context():
+    achievements = [
+        Achievement(
+            title='First Activity',
+            description='Complete your first activity session.',
+            icon='🏁',
+            requirement='activity_count >= 1'
+        ),
+        Achievement(
+            title='Activity Streak',
+            description='Log activity 5 days in a row.',
+            icon='🔥',
+            requirement='5-day streak'
+        ),
+        Achievement(
+            title='Distance Champion',
+            description='Accumulate 100km total distance.',
+            icon='🏃',
+            requirement='distance >= 100km'
+        ),
+        Achievement(
+            title='Consistency King',
+            description='Complete all planned sessions in one week.',
+            icon='👑',
+            requirement='weekly_completion == 100%'
+        ),
+        Achievement(
+            title='Goal Crusher',
+            description='Successfully complete a goal.',
+            icon='🎯',
+            requirement='any goal is_completed == True'
+        )
+    ]
+
+    for ach in achievements:
+        exists = Achievement.query.filter_by(title=ach.title).first()
+        if not exists:
+            db.session.add(ach)
+    
+    db.session.commit()
+    print("Achievements seeded successfully.")
+    print([a.title for a in Achievement.query.all()])
