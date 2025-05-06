@@ -32,8 +32,24 @@ def goals():
     print([atype.to_dict() for atype in activity_types])
 
     incomplete_sessions = ActivitySession.query.filter_by(user_id=current_user.id, is_completed=False).all()
+    print([atype.to_dict() for atype in incomplete_sessions])
+
+    from collections import defaultdict
+
+    goal_types = GoalType.query.all()
+    goal_type_map = {gt.id: gt.name for gt in goal_types}
+
     
-    return render_template('dashboard/goals.html', goals=user_goals, activity_types=activity_types,sessions=incomplete_sessions)
+    grouped_sessions = defaultdict(list)
+    for session in incomplete_sessions:
+        goal_type_id = session.goal_type_id
+        if goal_type_id in goal_type_map:
+            goal_type_name = goal_type_map[goal_type_id]
+            grouped_sessions[goal_type_name].append(session)
+        else:
+            grouped_sessions['Unknown'].append(session)
+    
+    return render_template('dashboard/goals.html', goals=user_goals, activity_types=activity_types,sessions=incomplete_sessions,grouped_sessions=grouped_sessions)
 
 @dashboard_bp.route('/achievements')
 @login_required
