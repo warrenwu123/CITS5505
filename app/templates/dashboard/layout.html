@@ -24,8 +24,14 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'activities' %}active{% endif %}" href="{{ url_for('dashboard.achievements') }}">
-                            <i class="fas fa-running me-2"></i>
-                            Activities
+                            <i class="fa-solid fa-trophy-star"></i>
+                            Achievements
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'leaderboard' %}active{% endif %}" href="{{ url_for('dashboard.leaderboard') }}">
+                            <i class="fa-solid fa-ranking-star"></i>
+                            leaderboard
                         </a>
                     </li>
                     <li class="nav-item">
