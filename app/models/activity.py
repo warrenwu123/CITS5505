@@ -68,9 +68,21 @@ class Goal(db.Model):
     is_completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
     updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+
+    activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True)
     
     def __repr__(self):
         return f'<Goal {self.goal_type} {self.target_value}>'
+    def get_progress(self):
+        if not self.activity_sessions:
+            return {"percentage": 0}
+
+        total = len(self.activity_sessions)
+        completed = sum(1 for session in self.activity_sessions if session.is_completed)
+
+        percentage = (completed / total) * 100
+        return {"percentage": percentage}
+
 
     
 class ActivitySession(db.Model):
