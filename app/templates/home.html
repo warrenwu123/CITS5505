@@ -96,7 +96,7 @@
             <div class="card-body">
                 <p class="card-text">Set your exercise goal to make your dream come true</p>
                 <div class="text-center mt-3">
-                    <a href="#" class="btn btn-outline-primary">Set Goals</a>
+                    <a href="{{ url_for('dashboard.goals') }}" class="btn btn-outline-primary">Set Goals</a>
                 </div>
             </div>
         </div>
@@ -156,7 +156,7 @@
             <div class="card-body">
                 <p class="card-text">Rank yourself and compete with your friends to stay motivated</p>
                 <div class="text-center mt-3">
-                    <a href="#" class="btn btn-outline-success">View Leaderboard</a>
+                    <a href="{{ url_for('dashboard.leaderboard') }}" class="btn btn-outline-success">View Leaderboard</a>
                 </div>
             </div>
         </div>
