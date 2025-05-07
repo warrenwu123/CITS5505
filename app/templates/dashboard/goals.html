@@ -252,6 +252,7 @@
             </div>
             <div class="modal-body">
                 <form id="editGoalForm">
+                    <input type="hidden" id="editGoalId">
                     <div class="mb-3" id="editRepsGroup">
                         <label for="editReps" class="form-label">Reps</label>
                         <input type="number" class="form-control" id="editReps" min="1">
@@ -307,7 +308,6 @@
         
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
-        document.getElementById('updateGoalBtn').addEventListener('click', updateGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
         
         // Set up edit buttons
@@ -324,10 +324,14 @@
         targetGroup.style.display = 'none';
     }
 });
+
     
     document.querySelectorAll('.edit-session-btn').forEach(button => {
     button.addEventListener('click', function () {
+        const sessionId = this.getAttribute('data-session-id');
         const activityName = this.getAttribute('data-activity-name')?.toLowerCase() || "";
+
+        document.getElementById('editGoalId').value = sessionId;
 
        
         const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
@@ -349,7 +353,53 @@
         
     });
 });
-    
+
+    document.getElementById('updateGoalBtn').addEventListener('click', async () => {
+    const sessionId = document.getElementById('editGoalId').value;
+    const reps = document.getElementById('editRepsGroup').style.display !== 'none' 
+        ? parseInt(document.getElementById('editReps').value) 
+        : null;
+
+    const sets = document.getElementById('editSetsGroup').style.display !== 'none' 
+        ? parseInt(document.getElementById('editSets').value) 
+        : null;
+
+    const duration = document.getElementById('editTimeGroup').style.display !== 'none' 
+        ? parseInt(document.getElementById('editDuration').value) 
+        : null;
+
+  
+    const updateData = {
+        session_id: sessionId,
+        reps: reps,
+        sets: sets,
+        duration: duration
+    };
+
+    try {
+        const response = await fetch('/dashboard/api/update-goal-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            
+            alert('Goal updated successfully!');
+            location.reload();  
+        } else {
+            const error = await response.json();
+            alert(`Update failed: ${error.message}`);
+        }
+    } catch (err) {
+        console.error('Error updating goal:', err);
+        alert('An error occurred while updating the goal.');
+    }
+});
+
     function setupDeleteButtons() {
         const deleteButtons = document.querySelectorAll('.delete-goal-btn');
         deleteButtons.forEach(button => {
@@ -522,44 +572,6 @@
     }
 }
     
-    async function updateGoal() {
-        const goalId = document.getElementById('editGoalId').value;
-        const targetValue = document.getElementById('editTargetValue').value;
-        const endDate = document.getElementById('editEndDate').value;
-        const isCompleted = document.getElementById('editIsCompleted').checked;
-        
-        if (!targetValue) {
-            alert('Please provide a target value');
-            return;
-        }
-        
-        const goalData = {
-            target_value: parseFloat(targetValue),
-            end_date: endDate || null,
-            is_completed: isCompleted
-        };
-        
-        try {
-            const response = await fetch(`/api/goals/${goalId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(goalData)
-            });
-            
-            if (response.ok) {
-                // Reload the page to show the updated goal
-                window.location.reload();
-            } else {
-                const error = await response.json();
-                alert(`Error updating goal: ${error.error}`);
-            }
-        } catch (error) {
-            console.error('Error updating goal:', error);
-            alert('Error updating goal. Please try again.');
-        }
-    }
     
     async function deleteGoal() {
         if (!deleteGoalId) return;

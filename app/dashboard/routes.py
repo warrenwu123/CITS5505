@@ -174,6 +174,7 @@ def create_goal():
         sessions = []
         today = datetime.date.today()
         if goal_type == 'strength' or goal_type == 'weightgain':
+            
             for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
                 session = ActivitySession(
                     user_id=current_user.id,
@@ -218,38 +219,36 @@ def create_goal():
 
         
 
-@dashboard_bp.route('/api/update-goal/<int:goal_id>', methods=['PUT'])
-@login_required
-def update_goal(goal_id):
-    """API endpoint to update a goal"""
-    goal = Goal.query.filter_by(id=goal_id, user_id=current_user.id).first()
-    
-    if not goal:
-        return jsonify({'success': False, 'message': 'Goal not found'}), 404
-    
-    data = request.json
-    
-    if not data:
-        return jsonify({'success': False, 'message': 'No data provided'}), 400
-    
+@dashboard_bp.route('/dashboard/api/update-goal-session', methods=['POST'])
+def update_goal_session():
+    data = request.get_json()
+
+    session_id = data.get('session_id')
+    reps = data.get('reps')
+    sets = data.get('sets')
+    duration = data.get('duration')
+
+    if not session_id:
+        return jsonify({'message': 'Session ID is required'}), 400
+
+    session = ActivitySession.query.get(session_id)
+    if not session:
+        return jsonify({'message': 'Session not found'}), 404
+
+    # 仅更新提供的字段
+    if reps is not None:
+        session.reps = reps
+    if sets is not None:
+        session.sets = sets
+    if duration is not None:
+        session.duration = duration 
+
     try:
-        if 'activity_type_id' in data:
-            goal.activity_type_id = data.get('activity_type_id')
-        if 'goal_type' in data:
-            goal.goal_type = data.get('goal_type')
-        if 'target_value' in data:
-            goal.target_value = data.get('target_value')
-        if 'end_date' in data:
-            goal.end_date = data.get('end_date')
-        if 'is_completed' in data:
-            goal.is_completed = data.get('is_completed')
-        
         db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Goal updated successfully'})
+        return jsonify({'message': 'Session updated successfully'})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'message': 'Failed to update session', 'error': str(e)}), 500
 
 @dashboard_bp.route('/api/delete-goal/<int:goal_id>', methods=['DELETE'])
 @login_required
