@@ -158,4 +158,3 @@ class UserAchievement(db.Model):
     
 
 
-        
