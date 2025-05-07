@@ -200,7 +200,7 @@ def create_goal():
                     duration=datetime.timedelta(minutes=p.get('target_minutes') or p.get('target_minutes_per_week')),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
-                    is_completed=False
+                    is_completed=False,
                 )
                 sessions.append(session)
 

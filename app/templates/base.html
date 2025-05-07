@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-heartbeat"></i> FitTrack
@@ -57,7 +57,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ current_user.email }}" alt="Avatar" class="avatar-sm me-1">
-                                <span class="d-none d-md-inline">{{ current_user.email }}</span>
+                                <!-- <span class="d-none d-md-inline">{{ current_user.email }}</span> -->
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                 <li><a class="dropdown-item" href="{{ url_for('dashboard.profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
