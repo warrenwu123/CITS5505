@@ -120,7 +120,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for session in current_user.activity_sessions|sort(attribute='start_time', reverse=true)|slice(0, 5) %}
+                            {% set sessions = current_user.activity_sessions|sort(attribute='start_time', reverse=true)|list %}
+                            {% for session in sessions[:5] %}
                             <tr>
                                 <td>{{ session.activity_type.name }}</td>
                                 <td>{{ session.start_time.strftime('%B %d, %Y') }}</td>
@@ -159,7 +160,8 @@
             </div>
             <div class="card-body">
                 {% if current_user.goals|selectattr('is_completed', 'equalto', false)|list|length > 0 %}
-                {% for goal in current_user.goals|selectattr('is_completed', 'equalto', false)|list|slice(0, 3) %}
+                {% set active_goals = current_user.goals|selectattr('is_completed', 'equalto', false)|list %}
+                {% for goal in active_goals[:3] %}
                 <h4 class="small font-weight-bold">
                     {{ goal.activity_type.name }} - {{ goal.goal_type|title }}: {{ goal.target_value }}
                     <span class="float-end">{{ goal.get_progress().percentage|round|int }}%</span>
@@ -196,7 +198,8 @@
             <div class="card-body">
                 {% if current_user.user_achievements|length > 0 %}
                 <div class="row">
-                    {% for user_achievement in current_user.user_achievements|sort(attribute='earned_at', reverse=true)|slice(0, 4) %}
+                    {% set recent_achievements = current_user.user_achievements|sort(attribute='earned_at', reverse=true)|list %}
+                    {% for user_achievement in recent_achievements[:3] %}
                     <div class="col-md-3 col-sm-6 mb-4">
                         <div class="card bg-light">
                             <div class="card-body text-center">
