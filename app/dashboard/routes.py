@@ -198,7 +198,7 @@ def create_goal():
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
                     start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
-                    duration=datetime.timedelta(minutes=p.get('target_minutes') or p.get('target_minutes_per_week')),
+                    duration=p.get('target_minutes_per_week'),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
                     is_completed=False,
@@ -235,7 +235,7 @@ def update_goal_session():
     if not session:
         return jsonify({'message': 'Session not found'}), 404
 
-    # 仅更新提供的字段
+    
     if reps is not None:
         session.reps = reps
     if sets is not None:
@@ -250,23 +250,25 @@ def update_goal_session():
         db.session.rollback()
         return jsonify({'message': 'Failed to update session', 'error': str(e)}), 500
 
-@dashboard_bp.route('/api/delete-goal/<int:goal_id>', methods=['DELETE'])
+@dashboard_bp.route('/api/sessions/<int:session_id>', methods=['DELETE'])
 @login_required
-def delete_goal(goal_id):
-    """API endpoint to delete a goal"""
-    goal = Goal.query.filter_by(id=goal_id, user_id=current_user.id).first()
+def delete_activity_session(session_id):
+    session = ActivitySession.query.get(session_id)
+
+    if not session:
+        return jsonify({"error": "Activity session not found."}), 404
+
     
-    if not goal:
-        return jsonify({'success': False, 'message': 'Goal not found'}), 404
-    
+    if session.goal.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized to delete this session."}), 403
+
     try:
-        db.session.delete(goal)
+        db.session.delete(session)
         db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Goal deleted successfully'})
+        return jsonify({"message": "Activity session deleted successfully."}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required

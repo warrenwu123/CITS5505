@@ -107,7 +107,7 @@
                                 <button class="btn btn-sm btn-info text-white edit-session-btn" data-session-id="{{ session.id }}" data-activity-name="{{ session.activity_type.name }}" data-bs-target="#editGoalModal" data-bs-toggle="modal" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}" title="Delete">
+                                <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}" data-bs-target="#deleteGoalModal" data-bs-toggle="modal" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -273,6 +273,7 @@
         </div>
     </div>
 </div>
+</div>
 
 <!-- Delete Goal Confirmation Modal -->
 <div class="modal fade" id="deleteGoalModal" tabindex="-1" aria-labelledby="deleteGoalModalLabel" aria-hidden="true">
@@ -309,9 +310,7 @@
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
-        
-        // Set up edit buttons
-        setupEditButtons();
+    
         setupDeleteButtons();
     });
 
@@ -400,18 +399,17 @@
     }
 });
 
-    function setupDeleteButtons() {
-        const deleteButtons = document.querySelectorAll('.delete-goal-btn');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                deleteGoalId = this.getAttribute('data-goal-id');
-                
-                // Show the confirmation modal
-                const deleteModal = new bootstrap.Modal(document.getElementById('deleteGoalModal'));
-                deleteModal.show();
-            });
+let deleteSessionId = null;
+
+function setupDeleteButtons() {
+    const deleteButtons = document.querySelectorAll('.delete-session-btn'); 
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            deleteSessionId = this.getAttribute('data-session-id');
+            console.log(deleteSessionId, "deleteSessionId")
         });
-    }
+    });
+}
     
     function updateGoalUI(data) {
     console.log(data, "data")
@@ -574,10 +572,10 @@
     
     
     async function deleteGoal() {
-        if (!deleteGoalId) return;
+        if (!deleteSessionId) return;
         
         try {
-            const response = await fetch(`/api/goals/${deleteGoalId}`, {
+            const response = await fetch(`/dashboard/api/sessions/${deleteSessionId}`, {
                 method: 'DELETE'
             });
             
