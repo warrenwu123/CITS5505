@@ -83,8 +83,8 @@
                                 {% set name = session.activity_type.name.lower() %}
                                 {% if name in ['running', 'walking', 'cycling', 'swimming'] %}
                                     <div class="detail-row">
-                                        <span class="detail-label"><i class="fas fa-fire text-danger me-1"></i> Calories:</span>
-                                        <span class="detail-value calories">{{ session.calories_burned or 'N/A' }}</span>
+                                        <span class="detail-label text-light"><i class="fas fa-fire text-danger me-1"></i> Calories:</span>
+                                        <span class="detail-value calories text-light">{{ session.calories_burned or 'N/A' }}</span>
                                     </div>
                                 {% elif name in ['barbell squat', 'bench press', 'deadlift', 'chin-up', 'military press', 'push-up'] %}
                                     <div class="detail-row">
@@ -104,7 +104,7 @@
                                         <i class="fas fa-check me-1"></i> Complete
                                     </button>
                                 {% endif %}
-                                <button class="btn btn-sm btn-info text-white edit-session-btn" data-session-id="{{ session.id }}" title="Edit">
+                                <button class="btn btn-sm btn-info text-white edit-session-btn" data-session-id="{{ session.id }}" data-activity-name="{{ session.activity_type.name }}" data-bs-target="#editGoalModal" data-bs-toggle="modal" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}" title="Delete">
@@ -116,78 +116,7 @@
                 </div>
             {% endfor %}
         {% endif %}
-            <!-- <div class="card-body">
-                {% if activity_sessions %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>Goal Type</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Duration</th>
-                                <th>Calories Burned</th>
-                                <th>Progress</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sessions-table-body">
-                            {% for session in activity_sessions %}
-                            <tr id="session-row-{{ session.id }}">
-                                <td>{{ session.activity_type.name }}</td>
-                                <td>{{ session.goal_type.name if session.goal_type else 'N/A' }}</td>
-                                <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ session.end_time.strftime('%Y-%m-%d %H:%M') if session.end_time else 'Ongoing' }}</td>
-                                <td>
-                                    {% if session.duration %}
-                                        {{ (session.duration.total_seconds() // 60)|int }} minutes
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td>{{ session.calories_burned if session.calories_burned else 'N/A' }}</td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar {{ 'bg-success' if session.is_completed else '' }}" 
-                                             role="progressbar" 
-                                             style="width: {{ 100 if session.is_completed else 50 }}%" 
-                                             aria-valuenow="{{ 100 if session.is_completed else 50 }}" 
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
-                                            {{ 100 if session.is_completed else 50 }}%
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-info edit-session-btn" 
-                                            data-session-id="{{ session.id }}"
-                                            data-activity-type="{{ session.activity_type.id }}"
-                                            data-goal-type="{{ session.goal_type.id if session.goal_type else '' }}"
-                                            data-start-time="{{ session.start_time.strftime('%Y-%m-%dT%H:%M') }}"
-                                            data-end-time="{{ session.end_time.strftime('%Y-%m-%dT%H:%M') if session.end_time else '' }}"
-                                            data-duration="{{ session.duration.total_seconds() if session.duration else '' }}"
-                                            data-calories="{{ session.calories_burned if session.calories_burned else '' }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-session-btn" data-session-id="{{ session.id }}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <p class="mb-0">You don't have any activity sessions yet. Click the 'New Session' button to create one.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div> -->
+
 
 <!-- Goal Insights -->
 <div class="row">
@@ -323,51 +252,23 @@
             </div>
             <div class="modal-body">
                 <form id="editGoalForm">
-                    <input type="hidden" id="editGoalId">
-                    <div class="mb-3">
-                        <label for="editActivityType" class="form-label">Activity Type</label>
-                        <select class="form-select" id="editActivityType" disabled>
-                            {% for activity_type in activity_types %}
-                            <option value="{{ activity_type.id }}">{{ activity_type.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">
-                            Activity type cannot be changed once a goal is created
-                        </div>
+                    <div class="mb-3" id="editRepsGroup">
+                        <label for="editReps" class="form-label">Reps</label>
+                        <input type="number" class="form-control" id="editReps" min="1">
                     </div>
-                    <div class="mb-3">
-                        <label for="editGoalType" class="form-label">Goal Type</label>
-                        <select class="form-select" id="editGoalType" disabled>
-                            <option value="distance">Distance</option>
-                            <option value="duration">Duration</option>
-                            <option value="reps">Repetitions</option>
-                            <option value="calories">Calories</option>
-                        </select>
-                        <div class="form-text">
-                            Goal type cannot be changed once a goal is created
-                        </div>
+                    <div class="mb-3" id="editSetsGroup">
+                        <label for="editSets" class="form-label">Sets</label>
+                        <input type="number" class="form-control" id="editSets" min="1">
                     </div>
-                    <div class="mb-3">
-                        <label for="editTargetValue" class="form-label">Target Value</label>
-                        <input type="number" class="form-control" id="editTargetValue" required min="1" step="0.01">
+                    <div class="mb-3" id="editTimeGroup">
+                        <label for="editDuration" class="form-label">Time (minutes)</label>
+                        <input type="number" class="form-control" id="editDuration" min="1">
                     </div>
-                    <div class="mb-3">
-                        <label for="editEndDate" class="form-label">End Date (Optional)</label>
-                        <input type="date" class="form-control" id="editEndDate">
-                        <div class="form-text">
-                            If not specified, this will be an ongoing goal
-                        </div>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="editIsCompleted">
-                        <label class="form-check-label" for="editIsCompleted">Mark as completed</label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="updateGoalBtn">Update Goal</button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateGoalBtn">Update Goal</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -424,29 +325,30 @@
     }
 });
     
-    function setupEditButtons() {
-        const editButtons = document.querySelectorAll('.edit-goal-btn');
-        editButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const goalId = this.getAttribute('data-goal-id');
-                const activityType = this.getAttribute('data-activity-type');
-                const goalType = this.getAttribute('data-goal-type');
-                const targetValue = this.getAttribute('data-target-value');
-                const endDate = this.getAttribute('data-end-date');
-                
-                // Populate the edit modal
-                document.getElementById('editGoalId').value = goalId;
-                document.getElementById('editActivityType').value = activityType;
-                document.getElementById('editGoalType').value = goalType;
-                document.getElementById('editTargetValue').value = targetValue;
-                document.getElementById('editEndDate').value = endDate;
-                
-                // Show the modal
-                const editModal = new bootstrap.Modal(document.getElementById('editGoalModal'));
-                editModal.show();
-            });
-        });
-    }
+    document.querySelectorAll('.edit-session-btn').forEach(button => {
+    button.addEventListener('click', function () {
+        const activityName = this.getAttribute('data-activity-name')?.toLowerCase() || "";
+
+       
+        const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
+        const strengthTypes = ['barbell squat', 'bench press', 'deadlift', 'chin-up', 'military press', 'push-up'];
+
+       
+        document.getElementById('editTimeGroup').style.display = 'none';
+        document.getElementById('editRepsGroup').style.display = 'none';
+        document.getElementById('editSetsGroup').style.display = 'none';
+
+      
+        if (cardioTypes.includes(activityName)) {
+            document.getElementById('editTimeGroup').style.display = 'block';
+        } else if (strengthTypes.includes(activityName)) {
+            document.getElementById('editRepsGroup').style.display = 'block';
+            document.getElementById('editSetsGroup').style.display = 'block';
+        }
+
+        
+    });
+});
     
     function setupDeleteButtons() {
         const deleteButtons = document.querySelectorAll('.delete-goal-btn');
