@@ -182,7 +182,7 @@ def create_goal():
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
                     start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
-                    duration=datetime.timedelta(minutes=10 * p['rounds_per_week']),
+                    duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
                     calories_burned=None,
                     notes=None,
@@ -219,7 +219,7 @@ def create_goal():
 
         
 
-@dashboard_bp.route('/dashboard/api/update-goal-session', methods=['POST'])
+@dashboard_bp.route('/api/update-goal-session', methods=['POST'])
 def update_goal_session():
     data = request.get_json()
 
@@ -282,6 +282,20 @@ def delete_all_goals():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+@dashboard_bp.route('/api/session_distribution', methods=['GET'])
+@login_required
+def session_distribution():
+    results = (
+        db.session.query(ActivityType.name, func.count(ActivitySession.id))
+        .join(ActivitySession, ActivitySession.activity_type_id == ActivityType.id)
+        .filter(ActivitySession.user_id == current_user.id)
+        .group_by(ActivityType.name)
+        .all()
+    )
+    labels = [r[0] for r in results]
+    data = [r[1] for r in results]
+    return jsonify({'labels': labels, 'data': data})
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required

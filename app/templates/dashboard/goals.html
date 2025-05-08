@@ -28,9 +28,7 @@
                     </select>
                 </div>
             </div>
-            <button id="deleteAllGoalsBtn" class="btn btn-danger">
-                Delete All Goals
-            </button>
+
             {% if sessions|length == 0 %}
             <div class="text-center py-5 empty-state">
                 <i class="fas fa-dumbbell fa-4x mb-4 text-secondary opacity-50"></i>
@@ -316,15 +314,12 @@
     
     document.addEventListener('DOMContentLoaded', function() {
         // Set up chart data if there are goals
-        {% if goals %}
-            setupGoalCharts();
-        {% endif %}
         
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
-    
         setupDeleteButtons();
+        initializeCharts();
     });
 
     document.getElementById('goalType').addEventListener('change', function () {
@@ -387,6 +382,7 @@
         sets: sets,
         duration: duration
     };
+    console.log(updateData, "updateData")
 
     try {
         const response = await fetch('/dashboard/api/update-goal-session', {
@@ -412,29 +408,29 @@
     }
 });
 
-document.getElementById("deleteAllGoalsBtn").addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to delete ALL goals? This action cannot be undone!")) return;
+// document.getElementById("deleteAllGoalsBtn").addEventListener("click", async () => {
+//     if (!confirm("Are you sure you want to delete ALL goals? This action cannot be undone!")) return;
 
-    try {
-        const response = await fetch("/dashboard/api/goals/delete_all", {
-            method: "DELETE"
-        });
+//     try {
+//         const response = await fetch("/dashboard/api/goals/delete_all", {
+//             method: "DELETE"
+//         });
 
-        if (response.ok) {
-            const result = await response.json();
-            alert(result.message);
-            window.location.reload();
-        } else {
-            const error = await response.json();
-            alert("Error: " + error.error);
-        }
-    } catch (err) {
-        alert("Request failed. Please try again.");
-        console.error(err);
-    }
-});
+//         if (response.ok) {
+//             const result = await response.json();
+//             alert(result.message);
+//             window.location.reload();
+//         } else {
+//             const error = await response.json();
+//             alert("Error: " + error.error);
+//         }
+//     } catch (err) {
+//         alert("Request failed. Please try again.");
+//         console.error(err);
+//     }
+// });
 
-let deleteSessionId = null;
+// let deleteSessionId = null;
 
 function setupDeleteButtons() {
     const deleteButtons = document.querySelectorAll('.delete-session-btn'); 
@@ -446,80 +442,80 @@ function setupDeleteButtons() {
     });
 }
     
-    function updateGoalUI(data) {
-    console.log(data, "data")
-    const container = document.getElementById('sessionContainer');
-    container.innerHTML = ''; 
+//     function updateGoalUI(data) {
+//     console.log(data, "data")
+//     const container = document.getElementById('sessionContainer');
+//     container.innerHTML = ''; 
 
     
-    const grouped = {};
+//     const grouped = {};
 
-    data.sessions.forEach(session => {
-        const goalType = session.goal_type?.name || 'Unknown';
-        if (!grouped[goalType]) {
-            grouped[goalType] = [];
-        }
-        grouped[goalType].push(session);
-    });
+//     data.sessions.forEach(session => {
+//         const goalType = session.goal_type?.name || 'Unknown';
+//         if (!grouped[goalType]) {
+//             grouped[goalType] = [];
+//         }
+//         grouped[goalType].push(session);
+//     });
 
     
-    for (const [goalType, sessions] of Object.entries(grouped)) {
-        const section = document.createElement('div');
-        section.className = 'mb-4';
+//     for (const [goalType, sessions] of Object.entries(grouped)) {
+//         const section = document.createElement('div');
+//         section.className = 'mb-4';
 
-        const header = document.createElement('h4');
-        header.textContent = `Goal Type: ${goalType}`;
-        section.appendChild(header);
+//         const header = document.createElement('h4');
+//         header.textContent = `Goal Type: ${goalType}`;
+//         section.appendChild(header);
 
-        const row = document.createElement('div');
-        row.className = 'row';
+//         const row = document.createElement('div');
+//         row.className = 'row';
 
-        sessions.forEach(session => {
-            const activityName = session.activity_type?.name?.toLowerCase() || '';
-            const col = document.createElement('div');
-            col.className = 'col-md-4';
+//         sessions.forEach(session => {
+//             const activityName = session.activity_type?.name?.toLowerCase() || '';
+//             const col = document.createElement('div');
+//             col.className = 'col-md-4';
 
-            const card = document.createElement('div');
-            card.className = 'card mb-3 shadow-sm';
+//             const card = document.createElement('div');
+//             card.className = 'card mb-3 shadow-sm';
 
-            const body = document.createElement('div');
-            body.className = 'card-body';
+//             const body = document.createElement('div');
+//             body.className = 'card-body';
 
-            body.innerHTML = `
-                <h5 class="card-title">${session.activity_type?.name || 'Unknown'}</h5>
-                <p class="card-text"><strong>Start:</strong> ${formatDateTime(session.start_time)}</p>
-                <p class="card-text"><strong>End:</strong> ${session.end_time ? formatDateTime(session.end_time) : 'Ongoing'}</p>
-                <p class="card-text"><strong>Completed:</strong> ${session.is_completed ? 'Yes' : 'No'}</p>
-            `;
+//             body.innerHTML = `
+//                 <h5 class="card-title">${session.activity_type?.name || 'Unknown'}</h5>
+//                 <p class="card-text"><strong>Start:</strong> ${formatDateTime(session.start_time)}</p>
+//                 <p class="card-text"><strong>End:</strong> ${session.end_time ? formatDateTime(session.end_time) : 'Ongoing'}</p>
+//                 <p class="card-text"><strong>Completed:</strong> ${session.is_completed ? 'Yes' : 'No'}</p>
+//             `;
 
             
-            const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
-            const strengthTypes = [
-                'barbell squat', 'bench press', 'deadlift',
-                'chin-up', 'military press', 'push-up'
-            ];
+//             const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
+//             const strengthTypes = [
+//                 'barbell squat', 'bench press', 'deadlift',
+//                 'chin-up', 'military press', 'push-up'
+//             ];
 
-            if (cardioTypes.includes(activityName)) {
-                body.innerHTML += `
-                    <p class="card-text"><strong>Duration:</strong> ${formatDuration(session.duration)}</p>
-                    <p class="card-text"><strong>Calories:</strong> ${session.calories_burned ?? 'N/A'}</p>
-                `;
-            } else if (strengthTypes.includes(activityName)) {
-                body.innerHTML += `
-                    <p class="card-text"><strong>Sets:</strong> ${session.sets ?? 'N/A'}</p>
-                    <p class="card-text"><strong>Reps:</strong> ${session.reps ?? 'N/A'}</p>
-                `;
-            }
+//             if (cardioTypes.includes(activityName)) {
+//                 body.innerHTML += `
+//                     <p class="card-text"><strong>Duration:</strong> ${formatDuration(session.duration)}</p>
+//                     <p class="card-text"><strong>Calories:</strong> ${session.calories_burned ?? 'N/A'}</p>
+//                 `;
+//             } else if (strengthTypes.includes(activityName)) {
+//                 body.innerHTML += `
+//                     <p class="card-text"><strong>Sets:</strong> ${session.sets ?? 'N/A'}</p>
+//                     <p class="card-text"><strong>Reps:</strong> ${session.reps ?? 'N/A'}</p>
+//                 `;
+//             }
 
-            card.appendChild(body);
-            col.appendChild(card);
-            row.appendChild(col);
-        });
+//             card.appendChild(body);
+//             col.appendChild(card);
+//             row.appendChild(col);
+//         });
 
-        section.appendChild(row);
-        container.appendChild(section);
-    }
-}
+//         section.appendChild(row);
+//         container.appendChild(section);
+//     }
+// }
 
     function formatDateTime(isoString) {
         const dt = new Date(isoString);
@@ -535,6 +531,44 @@ function setupDeleteButtons() {
             return 'N/A';
         }
     }
+    async function initializeCharts() {
+    const distributionChartElem = document.getElementById('goalDistributionChart');
+    if (distributionChartElem) {
+        try {
+            const res = await fetch('/dashboard/api/session_distribution');
+            const result = await res.json();
+
+            const distributionChart = new Chart(distributionChartElem, {
+                type: 'doughnut',
+                data: {
+                    labels: result.labels,
+                    datasets: [{
+                        data: result.data,
+                        backgroundColor: [
+                            '#FF6B6B', '#48DBFB', '#1DD1A1', '#54A0FF', '#C56CF0', '#FF9F43', '#00d2d3', '#576574'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Failed to load session distribution:', err);
+        }
+    }
+}
 
     async function createGoal() {
     // const activityTypeId = document.getElementById('activityType').value;
@@ -544,13 +578,13 @@ function setupDeleteButtons() {
     const availableTime = document.getElementById('availableTime').value;
     const endDate = document.getElementById('endDate').value;
 
-    if (!activityTypeId || !goalType || !fitnessLevel || !availableTime) {
+    if (!goalType || !fitnessLevel || !availableTime) {
         alert('Please fill in all required fields');
         return;
     }
 
     const goalData = {
-        activity_type_id: parseInt(activityTypeId),
+        // activity_type_id: parseInt(activityTypeId),
         goal_type: goalType,
         target_value: (goalType === 'weightloss' || goalType === 'weightgain') ? parseFloat(targetValue) : null,
         fitness_level: fitnessLevel,
@@ -594,7 +628,6 @@ function setupDeleteButtons() {
 
         if (response.ok) {
             const result = await response.json();
-            updateGoalUI(result);
         } else {
             const error = await response.json();
             alert(`Error creating goal: ${error.error}`);

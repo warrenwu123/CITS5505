@@ -95,7 +95,7 @@ class ActivitySession(db.Model):
     end_time = db.Column(db.DateTime, nullable=True)
     sets = db.Column(db.Integer, nullable=True)
     reps = db.Column(db.Integer, nullable=True)
-    duration = db.Column(db.Interval, nullable=True)
+    duration = db.Column(db.Float, nullable=True)
     calories_burned = db.Column(db.Float, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     is_completed = db.Column(db.Boolean, default=False)
