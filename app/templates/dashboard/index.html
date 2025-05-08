@@ -163,7 +163,7 @@
                 {% set active_goals = current_user.goals|selectattr('is_completed', 'equalto', false)|list %}
                 {% for goal in active_goals[:3] %}
                 <h4 class="small font-weight-bold">
-                    {{ goal.activity_type.name }} - {{ goal.goal_type|title }}: {{ goal.target_value }}
+                    {{ goal.id }} - {{ goal.goal_type|title }}: {{ goal.target_value }}
                     <span class="float-end">{{ goal.get_progress().percentage|round|int }}%</span>
                 </h4>
                 <div class="progress mb-4">

@@ -11,7 +11,7 @@ class ActivityType(db.Model):
     
     # Relationships
     activity_sessions = db.relationship('ActivitySession', backref='activity_type', lazy=True)
-    goals = db.relationship('Goal', backref='activity_type', lazy=True)
+    # goals = db.relationship('Goal', backref='activity_type', lazy=True)
     fitness_level_configs = db.relationship('FitnessLevelConfig', backref='activity_type', lazy=True)
     goal_types = db.relationship('GoalType', secondary='activity_type_plan_type', lazy='subquery',
                                  backref=db.backref('activity_types', lazy=True))
@@ -59,7 +59,7 @@ class Goal(db.Model):
         db.Enum('beginner', 'novice', 'intermediate', 'advanced', 'elite', name='fitnesslevelenum'),
         nullable=False
     )
-    activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False,name='activity_type_id')
+    # activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False,name='activity_type_id')
     goal_type_id = db.Column(db.Integer, db.ForeignKey('goal_type.id'), nullable=False,name='goal_type_id') 
     target_value = db.Column(db.Float, nullable=False)
     available_time_per_week = db.Column(db.Float, nullable=False)  
@@ -164,6 +164,7 @@ class UserAchievement(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False,name='user_id')
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False,name='achievement_id')
     earned_at = db.Column(db.DateTime, default=func.now())
+
     
     def __repr__(self):
         return f'<UserAchievement {self.user_id} - {self.achievement_id}>'

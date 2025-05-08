@@ -1,6 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy import text
 
 from app import db
 from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
@@ -147,7 +148,6 @@ def create_goal():
         
         goal = Goal(
             user_id=current_user.id,
-            activity_type_id=data.get('activity_type_id'),
             goal_type_id=goal_type_obj.id,
             target_value=data.get('target_value'),
             fitness_level=data.get('fitness_level'),
@@ -266,6 +266,19 @@ def delete_activity_session(session_id):
         db.session.delete(session)
         db.session.commit()
         return jsonify({"message": "Activity session deleted successfully."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@dashboard_bp.route('/api/goals/delete_all', methods=['DELETE'])
+def delete_all_goals():
+    try:
+        Goal.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+
+        # Reset SQLite auto-increment counter
+
+        return jsonify({"message": "All goals deleted and ID reset."}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
