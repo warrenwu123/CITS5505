@@ -104,36 +104,60 @@
     <!-- Recent Activity -->
     <div class="col-lg-6 mb-4">
         <div class="card shadow">
-            <div class="card-header py-3">
+            <div class="card-header py-3 text-white border-0">
                 <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
             </div>
             <div class="card-body">
                 {% if current_user.activity_sessions|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-bordered" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>Date</th>
-                                <th>Duration</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set sessions = current_user.activity_sessions|sort(attribute='start_time', reverse=true)|list %}
-                            {% for session in sessions[:5] %}
-                            <tr>
-                                <td>{{ session.activity_type.name }}</td>
-                                <td>{{ session.start_time.strftime('%B %d, %Y') }}</td>
-                                <td>{{ session.duration or 'N/A' }}</td>
-                                <td>
-                                    {% if session.distance %}{{ session.distance }} km{% endif %}
-                                    {% if session.reps %}{{ session.reps }} reps{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                {% set sessions = current_user.activity_sessions|sort(attribute='start_time', reverse=true)|list %}
+                
+                <div class="list-group">
+                    {% for session in sessions[:5] %}
+                    <div class="list-group-item d-flex flex-wrap align-items-center justify-content-between py-3 px-2 mb-3 rounded border border-secondary shadow-sm activity-row">
+                        
+                        <!-- 图标 -->
+                        <div class="d-flex align-items-center me-3">
+                            {% set name = session.activity_type.name|lower %}
+                            <i class="fs-4 text-info me-2 
+                                {% if name == 'running' %}fas fa-running
+                                {% elif name == 'walking' %}fas fa-walking
+                                {% elif name == 'cycling' %}fas fa-biking
+                                {% elif name == 'swimming' %}fas fa-swimmer
+                                {% elif name == 'yoga' %}fas fa-pray
+                                {% elif name == 'gym' %}fas fa-dumbbell
+                                {% else %}fas fa-heartbeat{% endif %}"></i>
+                        </div>
+        
+                        <!-- 活动标题和时间 -->
+                        <div class="flex-grow-1 me-3" style="min-width: 150px;">
+                            <div class="fw-bold text-capitalize text-light">{{ session.activity_type.name }}</div>
+                            <small class="text-muted">{{ session.start_time.strftime('%b %d, %Y') }}</small>
+                        </div>
+        
+                        <!-- 状态 -->
+                        <div class="me-3">
+                            <span class="badge {{ 'bg-success' if session.is_completed else 'bg-secondary' }}">
+                                {{ 'Completed' if session.is_completed else 'Pending' }}
+                            </span>
+                        </div>
+        
+                        <!-- 时长 -->
+                        <div class="me-3 text-nowrap">
+                            <i class="fas fa-clock text-muted me-1"></i>{{ session.duration or 'N/A' }}
+                        </div>
+        
+                        <!-- 详细信息 -->
+                        <div class="text-nowrap">
+                            {% if session.distance %}
+                                <i class="fas fa-route text-info me-1"></i>{{ session.distance }} km
+                            {% elif session.reps %}
+                                <i class="fas fa-redo text-success me-1"></i>{{ session.reps }} reps
+                            {% else %}
+                                <i class="fas fa-info-circle text-muted me-1"></i>N/A
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center py-4">
