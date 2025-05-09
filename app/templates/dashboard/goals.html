@@ -39,27 +39,27 @@
                 </button>
             </div>
         {% else %}
-            {% for goal_type, sessions in grouped_sessions.items() %}
-            <div class="goal-type-container mb-4">
+            {% for goal in goals %}
+            <div class="goal-type-container mb-4" data-goal-id="{{ goal.id }}" {% if not loop.first %} style="display:none"{% endif %}>
                 <div class="goal-type-header d-flex justify-content-between align-items-center">
                     <h4 class="goal-title mb-0">
-                        {% if goal_type == 'weightloss' %}
+                        {% if goal.goal_type.name == 'weightloss' %}
                             <i class="fas fa-weight scale-in-center text-danger me-2"></i>
-                        {% elif goal_type == 'weightgain' %}
+                        {% elif goal.goal_type.name == 'weightgain' %}
                             <i class="fas fa-dumbbell scale-in-center text-success me-2"></i>
-                        {% elif goal_type == 'strength' %}
+                        {% elif goal.goal_type.name == 'strength' %}
                             <i class="fas fa-fist-raised scale-in-center text-warning me-2"></i>
-                        {% elif goal_type == 'endurance' %}
+                        {% elif goal.goal_type.name == 'endurance' %}
                             <i class="fas fa-child scale-in-center text-info me-2"></i>
                         {% else %}
                             <i class="fas fa-running scale-in-center text-primary me-2"></i>
                         {% endif %}
-                        <span class="text-uppercase">{{ goal_type }}</span>
+                        <span class="text-uppercase">{{ goal.goal_type.name }}</span>
                     </h4>
                     <span class="badge bg-primary rounded-pill">{{ sessions|length }} sessions</span>
                 </div>
                 <div class="sessions-grid mt-3">
-                    {% for session in sessions %}
+                    {% for session in goal.activity_sessions %}
                         <div class="activity-card activity-{{ session.activity_type.name|lower }}" data-session-id="{{ session.id }}">
                             <div class="activity-header">
                                 <div class="activity-icon">
@@ -125,6 +125,7 @@
                         </div>
                     {% endfor %}     
                 </div>
+                </div>  
             {% endfor %}
         {% endif %}
 
@@ -444,6 +445,38 @@
     } catch (err) {
         console.error('Error updating goal:', err);
         alert('An error occurred while updating the goal.');
+    }
+});
+
+
+document.getElementById('goalSelector').addEventListener('change', function() {
+    const GoalId = this.value;
+    
+   
+    document.querySelectorAll('.goal-type-container').forEach(container => {
+        container.style.display = 'none';
+    });
+    
+   
+    if (GoalId && GoalId !== '') {
+        selectedGoalId = GoalId.split('-')[1];
+        const container = document.querySelector(`.goal-type-container[data-goal-id="${selectedGoalId}"]`);
+        if (container) {
+            container.style.display = 'block';
+        }
+    } else {
+        
+        document.querySelectorAll('.goal-type-container').forEach((container, index) => {
+            container.style.display = index === 0 ? 'block' : 'none';
+        });
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const firstGoal = document.querySelector('.goal-type-container');
+    if (firstGoal) {
+        firstGoal.style.display = 'block';
     }
 });
 

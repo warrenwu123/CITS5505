@@ -53,35 +53,35 @@ class GoalType(db.Model):
             }
     
 class Goal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False,name='user_id')
-    fitness_level = db.Column(
-        db.Enum('beginner', 'novice', 'intermediate', 'advanced', 'elite', name='fitnesslevelenum'),
-        nullable=False
-    )
-    # activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False,name='activity_type_id')
-    goal_type_id = db.Column(db.Integer, db.ForeignKey('goal_type.id'), nullable=False,name='goal_type_id') 
-    target_value = db.Column(db.Float, nullable=True)
-    available_time_per_week = db.Column(db.Float, nullable=False)  
-    start_date = db.Column(db.DateTime, nullable=False, default=func.now())
-    end_date = db.Column(db.DateTime, nullable=True)
-    is_completed = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=func.now())
-    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+        id = db.Column(db.Integer, primary_key=True)
+        user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False,name='user_id')
+        fitness_level = db.Column(
+            db.Enum('beginner', 'novice', 'intermediate', 'advanced', 'elite', name='fitnesslevelenum'),
+            nullable=False
+        )
+        # activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False,name='activity_type_id')
+        goal_type_id = db.Column(db.Integer, db.ForeignKey('goal_type.id'), nullable=False, name='goal_type_id') 
+        target_value = db.Column(db.Float, nullable=True)
+        available_time_per_week = db.Column(db.Float, nullable=False)  
+        start_date = db.Column(db.DateTime, nullable=False, default=func.now())
+        end_date = db.Column(db.DateTime, nullable=True)
+        is_completed = db.Column(db.Boolean, default=False)
+        created_at = db.Column(db.DateTime, default=func.now())
+        updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
 
-    activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True)
-    
-    def __repr__(self):
-        return f'<Goal {self.goal_type} {self.target_value}>'
-    def get_progress(self):
-        if not self.activity_sessions:
-            return {"percentage": 0}
+        activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True)
+        
+        def __repr__(self):
+            return f'<Goal {self.goal_type} {self.target_value}>'
+        def get_progress(self):
+            if not self.activity_sessions:
+                return {"percentage": 0}
 
-        total = len(self.activity_sessions)
-        completed = sum(1 for session in self.activity_sessions if session.is_completed)
+            total = len(self.activity_sessions)
+            completed = sum(1 for session in self.activity_sessions if session.is_completed)
 
-        percentage = (completed / total) * 100
-        return {"percentage": percentage}
+            percentage = (completed / total) * 100
+            return {"percentage": percentage}
 
 
     
