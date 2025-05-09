@@ -1,6 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy import text
 
 from app import db
 from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
@@ -147,7 +148,6 @@ def create_goal():
         
         goal = Goal(
             user_id=current_user.id,
-            activity_type_id=data.get('activity_type_id'),
             goal_type_id=goal_type_obj.id,
             target_value=data.get('target_value'),
             fitness_level=data.get('fitness_level'),
@@ -174,6 +174,7 @@ def create_goal():
         sessions = []
         today = datetime.date.today()
         if goal_type == 'strength' or goal_type == 'weightgain':
+            
             for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
                 session = ActivitySession(
                     user_id=current_user.id,
@@ -181,7 +182,7 @@ def create_goal():
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
                     start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
-                    duration=datetime.timedelta(minutes=10 * p['rounds_per_week']),
+                    duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
                     calories_burned=None,
                     notes=None,
@@ -197,10 +198,10 @@ def create_goal():
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
                     start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
-                    duration=datetime.timedelta(minutes=p.get('target_minutes') or p.get('target_minutes_per_week')),
+                    duration=p.get('target_minutes_per_week'),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
-                    is_completed=False
+                    is_completed=False,
                 )
                 sessions.append(session)
 
@@ -218,56 +219,83 @@ def create_goal():
 
         
 
-@dashboard_bp.route('/api/update-goal/<int:goal_id>', methods=['PUT'])
-@login_required
-def update_goal(goal_id):
-    """API endpoint to update a goal"""
-    goal = Goal.query.filter_by(id=goal_id, user_id=current_user.id).first()
-    
-    if not goal:
-        return jsonify({'success': False, 'message': 'Goal not found'}), 404
-    
-    data = request.json
-    
-    if not data:
-        return jsonify({'success': False, 'message': 'No data provided'}), 400
-    
-    try:
-        if 'activity_type_id' in data:
-            goal.activity_type_id = data.get('activity_type_id')
-        if 'goal_type' in data:
-            goal.goal_type = data.get('goal_type')
-        if 'target_value' in data:
-            goal.target_value = data.get('target_value')
-        if 'end_date' in data:
-            goal.end_date = data.get('end_date')
-        if 'is_completed' in data:
-            goal.is_completed = data.get('is_completed')
-        
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Goal updated successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+@dashboard_bp.route('/api/update-goal-session', methods=['POST'])
+def update_goal_session():
+    data = request.get_json()
 
-@dashboard_bp.route('/api/delete-goal/<int:goal_id>', methods=['DELETE'])
-@login_required
-def delete_goal(goal_id):
-    """API endpoint to delete a goal"""
-    goal = Goal.query.filter_by(id=goal_id, user_id=current_user.id).first()
+    session_id = data.get('session_id')
+    reps = data.get('reps')
+    sets = data.get('sets')
+    duration = data.get('duration')
+
+    if not session_id:
+        return jsonify({'message': 'Session ID is required'}), 400
+
+    session = ActivitySession.query.get(session_id)
+    if not session:
+        return jsonify({'message': 'Session not found'}), 404
+
     
-    if not goal:
-        return jsonify({'success': False, 'message': 'Goal not found'}), 404
-    
+    if reps is not None:
+        session.reps = reps
+    if sets is not None:
+        session.sets = sets
+    if duration is not None:
+        session.duration = duration 
+
     try:
-        db.session.delete(goal)
         db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Goal deleted successfully'})
+        return jsonify({'message': 'Session updated successfully'})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'message': 'Failed to update session', 'error': str(e)}), 500
+
+@dashboard_bp.route('/api/sessions/<int:session_id>', methods=['DELETE'])
+@login_required
+def delete_activity_session(session_id):
+    session = ActivitySession.query.get(session_id)
+
+    if not session:
+        return jsonify({"error": "Activity session not found."}), 404
+
+    
+    if session.goal.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized to delete this session."}), 403
+
+    try:
+        db.session.delete(session)
+        db.session.commit()
+        return jsonify({"message": "Activity session deleted successfully."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@dashboard_bp.route('/api/goals/delete_all', methods=['DELETE'])
+def delete_all_goals():
+    try:
+        Goal.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+
+        # Reset SQLite auto-increment counter
+
+        return jsonify({"message": "All goals deleted and ID reset."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@dashboard_bp.route('/api/session_distribution', methods=['GET'])
+@login_required
+def session_distribution():
+    results = (
+        db.session.query(ActivityType.name, func.count(ActivitySession.id))
+        .join(ActivitySession, ActivitySession.activity_type_id == ActivityType.id)
+        .filter(ActivitySession.user_id == current_user.id)
+        .group_by(ActivityType.name)
+        .all()
+    )
+    labels = [r[0] for r in results]
+    data = [r[1] for r in results]
+    return jsonify({'labels': labels, 'data': data})
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required

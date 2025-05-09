@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="bg-dark text-light">
+<div class="bg-dark text-light width-100">
     <div class="row">
         <!-- Sidebar -->
-        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+        <nav id="sidebar" class="col-md-4 col-lg-3 d-md-block sidebar collapse">
             <div class="position-sticky pt-3">
                 <div class="text-center mb-4">
                     <h4 class="text-primary fw-bold">FitTracker</h4>
@@ -24,8 +24,14 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_page == 'activities' %}active{% endif %}" href="{{ url_for('dashboard.achievements') }}">
-                            <i class="fas fa-running me-2"></i>
-                            Activities
+                            <i class="fa-solid fa-trophy me-2"></i>
+                            Achievements
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_page == 'leaderboard' %}active{% endif %}" href="{{ url_for('dashboard.leaderboard') }}">
+                            <i class="fa-solid fa-ranking-star me-2"></i>
+                            leaderboard
                         </a>
                     </li>
                     <li class="nav-item">
@@ -45,9 +51,8 @@
         </nav>
 
         <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <main class="col-md-8 ms-sm-auto col-lg-9 px-md-4 width-100">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">{% block dashboard_title %}Dashboard{% endblock %}</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     {% block header_buttons %}{% endblock %}
                 </div>

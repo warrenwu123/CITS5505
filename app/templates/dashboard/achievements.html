@@ -44,18 +44,6 @@
                         </div>
                     {% endif %}
                 </div>
-				<h2>🏆 Earned Achievements</h2>
-<ul>
-  {% for ua in user_achievements %}
-    <li>
-      <strong>{{ ua.achievement.title }}</strong> - {{ ua.achievement.description }}
-      <small>(Earned at: {{ ua.earned_at.strftime('%Y-%m-%d') }})</small>
-    </li>
-  {% else %}
-    <li>No achievements earned yet.</li>
-  {% endfor %}
-</ul>
-
 <hr>
             </div>
         </div>
@@ -70,14 +58,6 @@
                 <h6 class="m-0 font-weight-bold text-primary">Available Achievements</h6>
             </div>
             <div class="card-body">
-				<h2>📋 Unearned Achievements</h2>
-<ul>
-  {% for a in unearned_achievements %}
-    <li><strong>{{ a.title }}</strong> - {{ a.description }}</li>
-  {% else %}
-    <li>All achievements unlocked!</li>
-  {% endfor %}
-</ul>
                 <div class="row">
                     {% set earned_ids = user_achievements | map(attribute='achievement_id') | list %}
                     {% for achievement in all_achievements %}

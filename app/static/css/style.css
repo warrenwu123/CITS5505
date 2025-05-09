@@ -21,9 +21,9 @@
 }
 
 body {
-    max-width: 1800px;     /* 设置最大宽度 */
-    margin: 0 auto;        /* 左右居中 */
-    padding: 0 20px;       /* 可选：给左右加点内边距 */
+    max-width: 1800px;     
+    margin: 0;        
+    padding: 0;      
     font-family: 'Roboto', sans-serif;
     background-color: var(--light-bg);
     color: var(--dark-bg);
@@ -299,6 +299,9 @@ body {
 }
 
 /* Modal Styling */
+
+
+
 .modal-content {
     background-color: var(--card-bg);
     border: none;
@@ -419,10 +422,10 @@ body {
 }
 
 /* Modal animations */
-.modal .modal-content {
+/* .modal .modal-content {
     border-radius: 15px;
     overflow: hidden;
-}
+} */
 
 .push-up-animation-modal,
 .squat-animation-modal {
