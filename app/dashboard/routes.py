@@ -157,10 +157,7 @@ def create_goal():
             is_completed=False
         )
         
-        db.session.add(goal)
-        db.session.commit()
-       
-        
+
         if goal_type == 'weightloss':
             plan = generate_weightloss_plan(goal)   
         elif goal_type == 'strength':
@@ -184,6 +181,7 @@ def create_goal():
                     start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
                     duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
+                    sets=p.get('sets'),
                     calories_burned=None,
                     notes=None,
                     is_completed=False
@@ -204,7 +202,9 @@ def create_goal():
                     is_completed=False,
                 )
                 sessions.append(session)
-
+        
+        db.session.add(goal)
+        db.session.commit()
         db.session.add_all(sessions)
         db.session.commit()
 
