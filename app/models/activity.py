@@ -61,7 +61,7 @@ class Goal(db.Model):
     )
     # activity_type_id = db.Column(db.Integer, db.ForeignKey('activity_type.id'), nullable=False,name='activity_type_id')
     goal_type_id = db.Column(db.Integer, db.ForeignKey('goal_type.id'), nullable=False,name='goal_type_id') 
-    target_value = db.Column(db.Float, nullable=False)
+    target_value = db.Column(db.Float, nullable=True)
     available_time_per_week = db.Column(db.Float, nullable=False)  
     start_date = db.Column(db.DateTime, nullable=False, default=func.now())
     end_date = db.Column(db.DateTime, nullable=True)

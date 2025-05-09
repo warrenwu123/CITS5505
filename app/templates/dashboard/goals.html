@@ -87,7 +87,7 @@
     
                             <div class="activity-details">
                                 <div class="detail-row">
-                                    <span class="detail-label"><i class="fas fa-clock text-muted me-1"></i> Duration:</span>
+                                    <span class="detail-label text-light"><i class="fas fa-clock text-light me-1"></i> Duration:</span>
                                     <span class="detail-value">{{ session.duration }}</span>
                                 </div>
     
@@ -300,6 +300,45 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Goal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Countdown Timer Modal -->
+<div class="modal fade" id="countdownModal" tabindex="-1" aria-labelledby="countdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="countdownModalLabel">Activity Countdown</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="countdown-display mb-4">
+                    <h1 class="display-1" id="countdownTimer">00:00:00</h1>
+                    <p class="lead" id="activityNameDisplay"></p>
+                </div>
+                <div class="progress mb-4">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                         role="progressbar" style="width: 100%"></div>
+                </div>
+                <div class="controls">
+                    <button id="startCountdownBtn" class="btn btn-success me-2">
+                        <i class="fas fa-play me-1"></i> Start
+                    </button>
+                    <button id="pauseCountdownBtn" class="btn btn-warning me-2" disabled>
+                        <i class="fas fa-pause me-1"></i> Pause
+                    </button>
+                    <button id="resumeCountdownBtn" class="btn btn-info" disabled>
+                        <i class="fas fa-redo me-1"></i> Resume
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="completeSessionBtn" class="btn btn-primary" disabled>
+                    <i class="fas fa-check me-1"></i> Complete Session
+                </button>
             </div>
         </div>
     </div>
@@ -570,6 +609,7 @@ function setupDeleteButtons() {
     }
 }
 
+
     async function createGoal() {
     // const activityTypeId = document.getElementById('activityType').value;
     const goalType = document.getElementById('goalType').value;
@@ -659,7 +699,134 @@ function setupDeleteButtons() {
             alert('Error deleting goal. Please try again.');
         }
     }
-    
+    // Countdown Timer Variables
+    let countdownInterval;
+    let remainingSeconds = 0;
+    let isPaused = false;
+    let currentSessionId = null;
+    let initialDuration = 0;
+
+    // Setup complete session buttons
+    document.querySelectorAll('.complete-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            currentSessionId = this.getAttribute('data-session-id');
+            const sessionCard = this.closest('.activity-card');
+            const durationText = sessionCard.querySelector('.detail-value').textContent;
+            console.log(durationText, "durationText")
+            
+            // Parse duration (assuming format like "30 minutes" or "1 hour 30 minutes")
+            initialDuration = parseFloat(durationText) * 60;
+            remainingSeconds = initialDuration;
+            
+            console.log(remainingSeconds, "remainingSeconds")
+            // Set activity name
+            const activityName = sessionCard.querySelector('.activity-title').textContent;
+            document.getElementById('activityNameDisplay').textContent = activityName;
+            
+            // Reset UI
+            document.getElementById('countdownTimer').textContent = formatTime(remainingSeconds);
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('startCountdownBtn').disabled = false;
+            document.getElementById('pauseCountdownBtn').disabled = true;
+            document.getElementById('resumeCountdownBtn').disabled = true;
+            document.getElementById('completeSessionBtn').disabled = true;
+            
+            // Show modal
+            const countdownModal = new bootstrap.Modal(document.getElementById('countdownModal'));
+            countdownModal.show();
+        });
+    });
+
+    // Countdown control buttons
+    document.getElementById('startCountdownBtn').addEventListener('click', startCountdown);
+    document.getElementById('pauseCountdownBtn').addEventListener('click', pauseCountdown);
+    document.getElementById('resumeCountdownBtn').addEventListener('click', resumeCountdown);
+    document.getElementById('completeSessionBtn').addEventListener('click', completeSession);
+
+    function parseDurationToSeconds(durationText) {
+        // Simple parser - adjust based on your actual duration format
+        const matches = durationText.match(/(\d+)\s*minutes?/i);
+        if (matches && matches[1]) {
+            return parseInt(matches[1]) * 60;
+        }
+        return 1800; // Default to 30 minutes if parsing fails
+    }
+
+    function formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function startCountdown() {
+        clearInterval(countdownInterval);
+        isPaused = false;
+        
+        document.getElementById('startCountdownBtn').disabled = true;
+        document.getElementById('pauseCountdownBtn').disabled = false;
+        document.getElementById('completeSessionBtn').disabled = false;
+        
+        countdownInterval = setInterval(updateCountdown, 1000);
+        updateCountdown(); // Update immediately
+    }
+
+    function pauseCountdown() {
+        clearInterval(countdownInterval);
+        isPaused = true;
+        document.getElementById('pauseCountdownBtn').disabled = true;
+        document.getElementById('resumeCountdownBtn').disabled = false;
+    }
+
+    function resumeCountdown() {
+        isPaused = false;
+        document.getElementById('pauseCountdownBtn').disabled = false;
+        document.getElementById('resumeCountdownBtn').disabled = true;
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    function updateCountdown() {
+        remainingSeconds--;
+        document.getElementById('countdownTimer').textContent = formatTime(remainingSeconds);
+        
+        // Update progress bar
+        const progressPercent = (remainingSeconds / initialDuration) * 100;
+        document.getElementById('progressBar').style.width = `${progressPercent}%`;
+        
+        if (remainingSeconds <= 0) {
+            clearInterval(countdownInterval);
+            document.getElementById('countdownTimer').textContent = "COMPLETED!";
+            document.getElementById('progressBar').classList.remove('bg-success');
+            document.getElementById('progressBar').classList.add('bg-primary');
+            document.getElementById('pauseCountdownBtn').disabled = true;
+            document.getElementById('resumeCountdownBtn').disabled = true;
+            document.getElementById('completeSessionBtn').disabled = false;
+        }
+    }
+
+    async function completeSession() {
+        try {
+            const response = await fetch(`/dashboard/api/sessions/${currentSessionId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    remaining_seconds: remainingSeconds > 0 ? remainingSeconds : 0
+                })
+            });
+            
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert(`Error completing session: ${error.message}`);
+            }
+        } catch (err) {
+            console.error('Error completing session:', err);
+            alert('Error completing session. Please try again.');
+        }
+    }
     
 </script>
 {% endblock %}

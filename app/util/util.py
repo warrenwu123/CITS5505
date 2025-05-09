@@ -54,8 +54,11 @@ def generate_weightloss_plan(goal):
     }
 
 def generate_strength_plan(goal):
-    strength_plan_type = GoalType.query.filter_by(name='Strength').first()
-    strength_activities = strength_plan_type.activities  # Strength Plan
+    # strength_plan_type = GoalType.query.filter_by(name='Strength').first()
+    strength_activities = [
+            "Barbell Squat", "Bench Press", "Deadlift",
+            "Chin-up", "Military Press", "Push-up",
+        ]
 
     
     minutes_per_exercise = 10
@@ -80,8 +83,11 @@ def generate_strength_plan(goal):
     return plan
 
 def generate_weightgain_plan(goal):
-    strength_plan_type = GoalType.query.filter_by(name='Strength').first()
-    strength_activities = strength_plan_type.activities
+    # strength_plan_type = GoalType.query.filter_by(name='Strength').first()
+    strength_activities = [
+            "Barbell Squat", "Bench Press", "Deadlift",
+            "Chin-up", "Military Press", "Push-up",
+        ]
 
     plan = []
     for activity in strength_activities:
