@@ -153,7 +153,7 @@ def create_goal():
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
             start_date=func.now(),
-            end_date=data.get('end_date'),
+            end_date = datetime.datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
             is_completed=False
         )
         
