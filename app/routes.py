@@ -73,12 +73,10 @@ def achievements():
 @login_required
 def leaderboard():
     """Leaderboard section of the dashboard"""
-    # Get top users by activity count
-    top_users_by_activity = db.session.query(
-        User, func.count(ActivitySession.id).label('activity_count')
-    ).join(ActivitySession, User.id == ActivitySession.user_id)\
-     .group_by(User.id)\
-     .order_by(func.count(ActivitySession.id).desc())\
+    # Get top users by total duration
+    top_users_by_duration = db.session.query(
+        User, User.total_duration.label('total_duration')
+    ).order_by(User.total_duration.desc())\
      .limit(10).all()
     
     # Get top users by achievement count
@@ -89,9 +87,18 @@ def leaderboard():
      .order_by(func.count(UserAchievement.id).desc())\
      .limit(10).all()
     
+    # Get top users by follower count
+    top_users_by_followers = db.session.query(
+        User, func.count(Follow.id).label('follower_count')
+    ).join(Follow, User.id == Follow.followed_id)\
+     .group_by(User.id)\
+     .order_by(func.count(Follow.id).desc())\
+     .limit(10).all()
+    
     return render_template('dashboard/leaderboard.html',
-                           top_users_by_activity=top_users_by_activity,
-                           top_users_by_achievements=top_users_by_achievements)
+                           active_users=top_users_by_duration,
+                           top_users_by_achievements=top_users_by_achievements,
+                           popular_users=top_users_by_followers)
 
 @dashboard_bp.route('/explore')
 @login_required
@@ -318,6 +325,10 @@ def log_activity():
             calories_burned=data.get('calories_burned'),
             notes=data.get('notes')
         )
+        
+        # Update user's total duration
+        if activity_session.duration:
+            current_user.total_duration += activity_session.duration
         
         db.session.add(activity_session)
         db.session.commit()
