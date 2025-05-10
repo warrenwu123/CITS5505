@@ -73,12 +73,19 @@ def achievements():
 @login_required
 def leaderboard():
     """Leaderboard section of the dashboard"""
+<<<<<<< HEAD
+    # Get top users by total duration
+    top_users_by_duration = db.session.query(
+        User, User.total_duration.label('total_duration')
+    ).order_by(User.total_duration.desc())\
+=======
     # Get top users by activity count
     top_users_by_activity = db.session.query(
         User, func.count(ActivitySession.id).label('activity_count')
     ).join(ActivitySession, User.id == ActivitySession.user_id)\
      .group_by(User.id)\
      .order_by(func.count(ActivitySession.id).desc())\
+>>>>>>> upstream/master
      .limit(10).all()
     
     # Get top users by achievement count
@@ -89,9 +96,24 @@ def leaderboard():
      .order_by(func.count(UserAchievement.id).desc())\
      .limit(10).all()
     
+<<<<<<< HEAD
+    # Get top users by follower count
+    top_users_by_followers = db.session.query(
+        User, func.count(Follow.id).label('follower_count')
+    ).join(Follow, User.id == Follow.followed_id)\
+     .group_by(User.id)\
+     .order_by(func.count(Follow.id).desc())\
+     .limit(10).all()
+    
+    return render_template('dashboard/leaderboard.html',
+                           active_users=top_users_by_duration,
+                           top_users_by_achievements=top_users_by_achievements,
+                           popular_users=top_users_by_followers)
+=======
     return render_template('dashboard/leaderboard.html',
                            top_users_by_activity=top_users_by_activity,
                            top_users_by_achievements=top_users_by_achievements)
+>>>>>>> upstream/master
 
 @dashboard_bp.route('/explore')
 @login_required
@@ -319,6 +341,13 @@ def log_activity():
             notes=data.get('notes')
         )
         
+<<<<<<< HEAD
+        # Update user's total duration
+        if activity_session.duration:
+            current_user.total_duration += activity_session.duration
+        
+=======
+>>>>>>> upstream/master
         db.session.add(activity_session)
         db.session.commit()
         

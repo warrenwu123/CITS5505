@@ -40,12 +40,20 @@
                             <tr>
                                 <th>Rank</th>
                                 <th>User</th>
+<<<<<<< HEAD
+                                <th>Total Duration (minutes)</th>
+=======
                                 <th>Total Activities</th>
+>>>>>>> upstream/master
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
+<<<<<<< HEAD
+                            {% for user, duration in active_users %}
+=======
                             {% for user, count in active_users %}
+>>>>>>> upstream/master
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>
@@ -54,7 +62,11 @@
                                         <span>{{ user.email }}</span>
                                     </div>
                                 </td>
+<<<<<<< HEAD
+                                <td>{{ "%.1f"|format(duration or 0) }}</td>
+=======
                                 <td>{{ count }}</td>
+>>>>>>> upstream/master
                                 <td>
                                     {% if current_user.id != user.id %}
                                         {% if current_user.is_following(user) %}
@@ -149,9 +161,43 @@
                 <h6 class="m-0 font-weight-bold text-primary">Achievement Leaders</h6>
             </div>
             <div class="card-body">
+<<<<<<< HEAD
+                {% if top_users_by_achievements %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>User</th>
+                                <th>Achievements</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user, count in top_users_by_achievements %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" alt="Avatar" class="avatar-sm me-2">
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p>No achievement data available yet.</p>
+                </div>
+                {% endif %}
+=======
                 <div id="achievement-leaders">
                     <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading achievement leaders...</p>
                 </div>
+>>>>>>> upstream/master
             </div>
         </div>
     </div>
