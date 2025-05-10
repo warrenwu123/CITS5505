@@ -3,23 +3,29 @@ import logging
 import datetime
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy 
+from sqlalchemy import MetaData
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Create base class for SQLAlchemy models
-class Base(DeclarativeBase):
-    pass
-
-# Initialize extensions
-db = SQLAlchemy(model_class=Base)
+db = SQLAlchemy(metadata=MetaData(naming_convention={
+    'pk': 'pk_%(table_name)s',
+    'fk': 'fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s',
+    'ix': 'ix_%(table_name)s_%(column_0_name)s',
+    'uq': 'uq_%(table_name)s_%(column_0_name)s',
+    'ck': 'ck_%(table_name)s_%(constraint_name)s',
+}))
+# Initialize extensions 
 login_manager = LoginManager()
 mail = Mail()
+
 
 # Create Flask app
 app = Flask(__name__)
@@ -35,6 +41,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 db.init_app(app)
 login_manager.init_app(app)
 mail.init_app(app)
+migrate = Migrate(app, db)
 
 # Add utility functions to Jinja templates
 @app.context_processor
@@ -49,10 +56,7 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
 # Create database tables
-with app.app_context():
-    # Import models to ensure they're registered with SQLAlchemy
-    from .models import User, MFAToken, PasswordResetToken, EmailVerificationToken
-    db.create_all()
+
 
 # Import and register blueprints
 from .auth import auth_bp
