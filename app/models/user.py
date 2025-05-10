@@ -14,10 +14,7 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
-<<<<<<< HEAD
     total_duration = db.Column(db.Float, default=0.0)  # 总锻炼时长（分钟）
-=======
->>>>>>> upstream/master
     # Removed avatar_url to maintain compatibility with existing database
     
     # Relationships
