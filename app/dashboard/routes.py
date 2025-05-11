@@ -451,3 +451,77 @@ def award_achievement(user_id, achievement_id):
     
     db.session.add(user_achievement)
     db.session.commit()
+    
+@dashboard_bp.route('/api/sessions/<int:session_id>/complete', methods=['POST'])
+@login_required
+def complete_session(session_id):
+    """API endpoint to mark an activity session as completed"""
+    data = request.json
+    remaining_seconds = data.get('remaining_seconds', 0)
+    
+    # Find the session
+    session = ActivitySession.query.get(session_id)
+    
+    if not session:
+        return jsonify({'success': False, 'message': 'Session not found'}), 404
+    
+    # Check if this is the user's session
+    if session.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    try:
+        # Mark session as completed
+        session.is_completed = True
+        
+        # Set end time to now if not already set
+        if not session.end_time:
+            session.end_time = func.now()
+        
+        # Update duration based on remaining seconds if tracking time
+        if session.duration and remaining_seconds > 0:
+            # Convert remaining_seconds to minutes (since duration is stored in minutes)
+            remaining_minutes = remaining_seconds / 60
+            # Adjust duration if there's remaining time
+            session.duration = session.duration - remaining_minutes
+        
+        # Calculate calories burned if not already set
+        if not session.calories_burned and session.duration and session.activity_type:
+            calories_per_hour = session.activity_type.calories_per_hour or 0
+            if calories_per_hour > 0:
+                # Convert duration from minutes to hours and multiply by calories_per_hour
+                hours = session.duration / 60
+                session.calories_burned = hours * calories_per_hour
+        
+        db.session.commit()
+        
+        # Check if this completes any goals
+        check_goal_progress(session.goal_id)
+        
+        # Check if user earned any achievements
+        check_achievements(current_user.id)
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Session completed successfully',
+            'session': session.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+def check_goal_progress(goal_id):
+    """Check if a goal is completed based on its associated sessions"""
+    if not goal_id:
+        return
+        
+    goal = Goal.query.get(goal_id)
+    if not goal:
+        return
+        
+    # Get progress
+    progress = goal.get_progress()
+    
+    # Update goal completion status if progress is 100%
+    if progress["percentage"] >= 100 and not goal.is_completed:
+        goal.is_completed = True
+        db.session.commit()
