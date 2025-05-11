@@ -286,10 +286,17 @@ def delete_all_goals():
 @dashboard_bp.route('/api/session_distribution', methods=['GET'])
 @login_required
 def session_distribution():
+
+    goal_id = request.args.get('goal_id', type=int)
+    
+    if goal_id is None:
+        return jsonify({'error': 'Missing goal_id parameter'}), 400
+    
     results = (
         db.session.query(ActivityType.name, func.count(ActivitySession.id))
         .join(ActivitySession, ActivitySession.activity_type_id == ActivityType.id)
         .filter(ActivitySession.user_id == current_user.id)
+        .filter(ActivitySession.goal_id == goal_id)
         .group_by(ActivityType.name)
         .all()
     )

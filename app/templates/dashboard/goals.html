@@ -22,9 +22,9 @@
                     <label for="goalSelector" class="form-label text-light">Select Goal</label>
                     <select class="form-select" id="goalSelector">
                         <option value="" selected disabled>Choose a goal</option>
-                        {% for goal in goals %}
-                        <option value="goal-{{ goal.id }}">Goal #{{ goal.id }} - {{ goal.goal_type|title }}</option>
-                        {% endfor %}
+                            {% for goal in goals %}
+                            <option value="goal-{{ goal.id }}">Goal #{{ goal.id }} - {{ goal.goal_type|title }}</option>
+                            {% endfor %}
                     </select>
                 </div>
             </div>
@@ -369,16 +369,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
     // Global variables
-    let deleteGoalId = null;
+let deleteGoalId = null;
+let distributionChart = null;
     
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set up chart data if there are goals
-        
+document.addEventListener('DOMContentLoaded', function() {
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
         setupDeleteButtons();
-        initializeCharts();
     });
 
     document.getElementById('goalType').addEventListener('change', function () {
@@ -392,7 +390,7 @@
 });
 
     
-    document.querySelectorAll('.edit-session-btn').forEach(button => {
+document.querySelectorAll('.edit-session-btn').forEach(button => {
     button.addEventListener('click', function () {
         const sessionId = this.getAttribute('data-session-id');
         const activityName = this.getAttribute('data-activity-name')?.toLowerCase() || "";
@@ -420,7 +418,7 @@
     });
 });
 
-    document.getElementById('updateGoalBtn').addEventListener('click', async () => {
+document.getElementById('updateGoalBtn').addEventListener('click', async () => {
     const sessionId = document.getElementById('editGoalId').value;
     const reps = document.getElementById('editRepsGroup').style.display !== 'none' 
         ? parseInt(document.getElementById('editReps').value) 
@@ -622,14 +620,26 @@ function setupDeleteButtons() {
             return 'N/A';
         }
     }
-    async function initializeCharts() {
+
+
+document.getElementById('goalSelector').addEventListener('change', async function () {
     const distributionChartElem = document.getElementById('goalDistributionChart');
+    const selectedValue = this.value; 
+    const goalId = selectedValue.split('-')[1];  
+
+  
     if (distributionChartElem) {
         try {
-            const res = await fetch('/dashboard/api/session_distribution');
+            const res = await fetch(`/dashboard/api/session_distribution?goal_id=${goalId}`);
             const result = await res.json();
+            console.log(result, "result")
+            
 
-            const distributionChart = new Chart(distributionChartElem, {
+            if (distributionChart) {
+            distributionChart.destroy();
+         }
+
+            distributionChart = new Chart(distributionChartElem, {
                 type: 'doughnut',
                 data: {
                     labels: result.labels,
@@ -659,7 +669,7 @@ function setupDeleteButtons() {
             console.error('Failed to load session distribution:', err);
         }
     }
-}
+})
 
 
     async function createGoal() {
