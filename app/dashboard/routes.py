@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy import text
 
 from app import db
-from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
+from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType,ActivityRecord
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
 
@@ -303,6 +303,72 @@ def session_distribution():
     labels = [r[0] for r in results]
     data = [r[1] for r in results]
     return jsonify({'labels': labels, 'data': data})
+
+from datetime import datetime, timedelta
+from collections import defaultdict
+@dashboard_bp.route('/api/activity_chart_data', methods=['GET'])
+@login_required
+def get_activity_chart_data():
+    today = datetime.today().date()
+    start_date = today - timedelta(days=6)
+
+    records = (
+        db.session.query(ActivityRecord, ActivitySession, ActivityType)
+        .join(ActivitySession, ActivityRecord.session_id == ActivitySession.id)
+        .join(ActivityType, ActivitySession.activity_type_id == ActivityType.id)
+        .filter(ActivitySession.user_id == current_user.id)
+        .filter(ActivityRecord.timestamp >= start_date)
+        .all()
+    )
+
+    duration_activities = {"Running", "Walking", "Cycling", "Swimming"}
+    reps_activities = {
+        "Barbell Squat", "Bench Press", "Deadlift",
+        "Chin-up", "Military Press", "Push-up"
+    }
+
+    date_labels = [(start_date + timedelta(days=i)).strftime('%a, %b %d') for i in range(7)]
+    activity_data = defaultdict(lambda: [0] * 7)
+
+    for record, session, activity_type in records:
+        activity_name = activity_type.name
+        timestamp_date = record.timestamp.date()
+        day_index = (timestamp_date - start_date).days
+
+        if 0 <= day_index < 7:
+            if activity_name in duration_activities and record.actual_duration:
+                activity_data[activity_name][day_index] += record.actual_duration
+            elif activity_name in reps_activities and record.actual_reps:
+                activity_data[activity_name][day_index] += record.actual_reps
+
+    colors = {
+        "Running": ('rgba(78, 115, 223, 0.5)', 'rgba(78, 115, 223, 1)'),
+        "Cycling": ('rgba(28, 200, 138, 0.5)', 'rgba(28, 200, 138, 1)'),
+        "Walking": ('rgba(133, 135, 150, 0.5)', 'rgba(133, 135, 150, 1)'),
+        "Swimming": ('rgba(231, 74, 59, 0.5)', 'rgba(231, 74, 59, 1)'),
+        "Barbell Squat": ('rgba(54, 185, 204, 0.5)', 'rgba(54, 185, 204, 1)'),
+        "Bench Press": ('rgba(246, 194, 62, 0.5)', 'rgba(246, 194, 62, 1)'),
+        "Deadlift": ('rgba(90, 92, 105, 0.5)', 'rgba(90, 92, 105, 1)'),
+        "Chin-up": ('rgba(58, 123, 213, 0.5)', 'rgba(58, 123, 213, 1)'),
+        "Military Press": ('rgba(100, 181, 246, 0.5)', 'rgba(100, 181, 246, 1)'),
+        "Push-up": ('rgba(255, 99, 132, 0.5)', 'rgba(255, 99, 132, 1)')
+    }
+
+    datasets = []
+    for activity, data_points in activity_data.items():
+        bg_color, border_color = colors.get(activity, ('rgba(100,100,100,0.5)', 'rgba(100,100,100,1)'))
+        datasets.append({
+            "label": activity,
+            "data": data_points,
+            "backgroundColor": bg_color,
+            "borderColor": border_color,
+            "borderWidth": 1
+        })
+
+    return jsonify({
+        "labels": date_labels,
+        "datasets": datasets
+    })
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required
