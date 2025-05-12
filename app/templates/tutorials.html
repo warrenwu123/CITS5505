@@ -261,7 +261,62 @@
 </div>
 
 <!-- Additional modals for other exercises would follow the same pattern -->
-
+<!-- Jumping Jack Modal -->
+<!-- Jumping Jack Modal -->
+<div class="modal fade" id="jumpingJackModal" tabindex="-1" aria-labelledby="jumpingJackModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jumpingJackModalLabel">Jumping Jack Tutorial</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 d-flex justify-content-center align-items-center">
+                        <div class="jumping-jack-animation-modal tutorial-animation-large" id="jumping-jack-animation-modal"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Instructions:</h5>
+                        <ol>
+                            <li>Stand upright with your feet together and arms at your sides.</li>
+                            <li>Jump up, spreading your legs shoulder-width apart while raising your arms overhead.</li>
+                            <li>Quickly return to the starting position by jumping again.</li>
+                            <li>Repeat for the desired number of repetitions.</li>
+                        </ol>
+                        <h5>Key Techniques:</h5>
+                        <ul>
+                            <li>Maintain a steady rhythm throughout the exercise.</li>
+                            <li>Land softly on the balls of your feet.</li>
+                            <li>Engage your core to stabilize your movements.</li>
+                        </ul>
+                        <h5>Variations:</h5>
+                        <ul>
+                            <li>Low-Impact Jumping Jacks (step out instead of jumping).</li>
+                            <li>Cross Jacks (cross arms and legs while jumping).</li>
+                            <li>Star Jumps (explosive jump with arms and legs fully extended).</li>
+                            <li>Squat Jacks (combine a squat with the jumping jack movement).</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>Common Mistakes:</h5>
+                        <ul>
+                            <li>Landing heavily on your heels instead of softly on the balls of your feet.</li>
+                            <li>Not fully extending your arms or legs during the movement.</li>
+                            <li>Slouching or not keeping your back straight.</li>
+                            <li>Moving too fast and losing control of form.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="jumping-jack-play">Play Animation</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
