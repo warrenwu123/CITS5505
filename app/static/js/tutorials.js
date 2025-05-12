@@ -72,6 +72,14 @@ function initializeAnimations() {
         path: '/static/animations/hamstring-stretch.json'
     });
     
+    const hamstringStretchAnimModal = lottie.loadAnimation({
+        container: document.getElementById('hamstring-stretch-animation-modal'),
+        renderer: 'svg',
+        loop: false,
+        autoplay: false,
+        path: '/static/animations/hamstring-stretch.json'
+    });
+
     // Tree Pose animations
     const treePoseAnim = lottie.loadAnimation({
         container: document.getElementById('tree-pose-animation'),
@@ -81,12 +89,28 @@ function initializeAnimations() {
         path: '/static/animations/tree-pose.json'
     });
     
+    const treePoseAnimModal = lottie.loadAnimation({
+        container: document.getElementById('tree-pose-animation-modal'),
+        renderer: 'svg',
+        loop: false,
+        autoplay: false,
+        path: '/static/animations/tree-pose.json'
+    });
+
     // Plank animations
     const plankAnim = lottie.loadAnimation({
         container: document.getElementById('plank-animation'),
         renderer: 'svg',
         loop: true,
         autoplay: true,
+        path: '/static/animations/plank.json'
+    });
+
+    const plankAnimModal = lottie.loadAnimation({
+        container: document.getElementById('plank-animation-modal'),
+        renderer: 'svg',
+        loop: false,
+        autoplay: false,
         path: '/static/animations/plank.json'
     });
     
@@ -99,8 +123,11 @@ function initializeAnimations() {
         jumpingJackAnim: jumpingJackAnim,
         jumpingJackAnimModal: jumpingJackAnimModal,
         hamstringStretchAnim: hamstringStretchAnim,
+        hamstringStretchAnimModal: hamstringStretchAnimModal,
         treePoseAnim: treePoseAnim,
-        plankAnim: plankAnim
+        treePoseAnimModal: treePoseAnimModal,
+        plankAnim: plankAnim,
+        plankAnimModal: plankAnimModal
     };
 }
 
@@ -182,7 +209,54 @@ function setupPlayPauseButtons() {
             }
         });
     }
+
+    const hamstringStretchPlayBtn = document.getElementById('hamstring-stretch-play');
+    if (hamstringStretchPlayBtn) {
+        hamstringStretchPlayBtn.addEventListener('click', function() {
+            const anim = window.exerciseAnimations.hamstringStretchAnimModal;
+            if (anim) {
+                if (this.textContent === 'Play Animation') {
+                    anim.goToAndPlay(0);
+                    this.textContent = 'Pause Animation';
+                } else {
+                    anim.pause();
+                    this.textContent = 'Play Animation';
+                }
+            }
+        });
+    }
     
+    const treePosePlayBtn = document.getElementById('tree-pose-play');
+    if (treePosePlayBtn) {
+        treePosePlayBtn.addEventListener('click', function() {
+            const anim = window.exerciseAnimations.treePoseAnimModal;
+            if (anim) {
+                if (this.textContent === 'Play Animation') {
+                    anim.goToAndPlay(0);
+                    this.textContent = 'Pause Animation';
+                } else {
+                    anim.pause();
+                    this.textContent = 'Play Animation';
+                }
+            }
+        });
+    }
+
+    const plankPlayBtn = document.getElementById('plank-play');
+    if (plankPlayBtn) {
+        plankPlayBtn.addEventListener('click', function() {
+            const anim = window.exerciseAnimations.plankAnimModal;
+            if (anim) {
+                if (this.textContent === 'Play Animation') {
+                    anim.goToAndPlay(0);
+                    this.textContent = 'Pause Animation';
+                } else {
+                    anim.pause();
+                    this.textContent = 'Play Animation';
+                }
+            }
+        });
+    }
     // Reset animation play button text when modals are closed
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
