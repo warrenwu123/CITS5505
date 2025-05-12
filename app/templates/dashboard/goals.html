@@ -643,8 +643,7 @@ function setupDeleteButtons() {
 }
 
 
-    async function createGoal() {
-    // const activityTypeId = document.getElementById('activityType').value;
+async function createGoal() {
     const goalType = document.getElementById('goalType').value;
     const targetValue = document.getElementById('targetValue').value;
     const fitnessLevel = document.getElementById('fitnessLevel').value;
@@ -657,36 +656,12 @@ function setupDeleteButtons() {
     }
 
     const goalData = {
-        // activity_type_id: parseInt(activityTypeId),
         goal_type: goalType,
         target_value: (goalType === 'weightloss' || goalType === 'weightgain') ? parseFloat(targetValue) : null,
         fitness_level: fitnessLevel,
         available_time_per_week: parseFloat(availableTime),
         end_date: endDate || null
     };
-    console.log(goalData,"goalData")
-    console.log(goalData.goal_type,"goalData.goal_type")
-
-    if (goalData.goal_type === 'weightloss' && goalData.end_date) {
-        const totalTargetCalories = goalData.target_value * 7700;
-
-        const today = new Date();
-        const end = new Date(goalData.end_date);
-
-        const diffTime = end - today;
-        const weeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
-
-        const maxBurnPerWeek = goalData.available_time_per_week * 700; // kcal per week
-        const totalPossibleCalories = maxBurnPerWeek * weeks;
-
-        console.log(`Target: ${totalTargetCalories}, Possible: ${totalPossibleCalories}`);
-
-        if (totalTargetCalories > totalPossibleCalories) {
-            alert("❗You can't lose that much weight within this timeline. Please reset your goal (increase available time and/or end date, or reduce target value).");
-            return; // Stop execution
-        }
-    }
-      
 
     try {
         const response = await fetch('/dashboard/api/create-goal', {
@@ -696,11 +671,17 @@ function setupDeleteButtons() {
             },
             body: JSON.stringify(goalData)
         });
-        // const text = await response.text();  
-        // console.log('Raw response:', text); 
 
         if (response.ok) {
             const result = await response.json();
+            alert('Goal created successfully!');
+
+            // 隐藏模态框
+            const createGoalModal = bootstrap.Modal.getInstance(document.getElementById('createGoalModal'));
+            createGoalModal.hide();
+
+            // 刷新页面或更新前端数据
+            location.reload();
         } else {
             const error = await response.json();
             alert(`Error creating goal: ${error.error}`);
@@ -710,7 +691,6 @@ function setupDeleteButtons() {
         alert('Error creating goal. Please try again.');
     }
 }
-    
     
     async function deleteGoal() {
         if (!deleteSessionId) return;
