@@ -54,6 +54,14 @@ function initializeAnimations() {
         autoplay: true,
         path: '/static/animations/jumping-jack.json'
     });
+
+    const jumpingJackAnimModal = lottie.loadAnimation({
+        container: document.getElementById('jumping-jack-animation-modal'),
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: '/static/animations/jumping-jack.json'
+    });
     
     // Hamstring Stretch animations
     const hamstringStretchAnim = lottie.loadAnimation({
@@ -89,6 +97,7 @@ function initializeAnimations() {
         squatAnim: squatAnim,
         squatAnimModal: squatAnimModal,
         jumpingJackAnim: jumpingJackAnim,
+        jumpingJackAnimModal: jumpingJackAnimModal,
         hamstringStretchAnim: hamstringStretchAnim,
         treePoseAnim: treePoseAnim,
         plankAnim: plankAnim
@@ -146,6 +155,22 @@ function setupPlayPauseButtons() {
     if (squatPlayBtn) {
         squatPlayBtn.addEventListener('click', function() {
             const anim = window.exerciseAnimations.squatAnimModal;
+            if (anim) {
+                if (this.textContent === 'Play Animation') {
+                    anim.goToAndPlay(0);
+                    this.textContent = 'Pause Animation';
+                } else {
+                    anim.pause();
+                    this.textContent = 'Play Animation';
+                }
+            }
+        });
+    }
+
+    const jumpingJackPlayBtn = document.getElementById('jumping-jack-play');
+    if (jumpingJackPlayBtn) {
+        jumpingJackPlayBtn.addEventListener('click', function() {
+            const anim = window.exerciseAnimations.jumpingJackAnimModal;
             if (anim) {
                 if (this.textContent === 'Play Animation') {
                     anim.goToAndPlay(0);
