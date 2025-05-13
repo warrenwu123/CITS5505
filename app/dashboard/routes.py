@@ -454,6 +454,32 @@ def unfollow_user(user_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
 
+from sqlalchemy.exc import SQLAlchemyError
+@dashboard_bp.route('/dashboard/api/sessions/<int:session_id>/complete', methods=['POST'])
+def complete_session(session_id):
+    data = request.get_json()
+    per_round = data.get('per_round', 0)
+
+    try:
+        session = ActivitySession.query.get(session_id)
+        if not session:
+            return jsonify({'message': 'Session not found'}), 404
+
+        if per_round > 0:
+            # 减少 duration，防止负值
+            session.duration = max(session.duration - per_round, 0)
+
+        # 如果 duration 减为 0，标记为完成
+        if session.duration == 0:
+            session.is_completed = True
+
+        db.session.commit()
+        return jsonify({'message': 'Session updated successfully'}), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'message': 'Database error', 'error': str(e)}), 500
+
 # Helper functions
 
 def check_goals_completion(user_id, activity_type_id):

@@ -108,6 +108,10 @@
                                         <span class="detail-label text-light"><i class="fas fa-clock text-light me-1"></i> Duration per round:</span>
                                         <span id="roundtime" class="detail-value text-light">{{ per_round }} minutes</span>
                                     </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label text-light"><i class="fas fa-hourglass-half text-info me-1"></i> Time Left:</span>
+                                        <span id="timeLeft" class="detail-value text-light" data-default="{{ per_round }}" data-session-id="{{ session.id }}">{{ per_round }} minutes</span>
+                                    </div>
                      
     
                                 {% set name = session.activity_type.name.lower() %}
@@ -377,7 +381,22 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
         setupDeleteButtons();
-    });
+        const timeLeftElem = document.getElementById('timeLeft');
+        const sessionId = timeLeftElem.dataset.sessionId;
+        const defaultTime = parseInt(timeLeftElem.dataset.default);
+        const storageKey = `timeLeft-session-${sessionId}`;
+
+        
+        const storedTime = localStorage.getItem(storageKey);
+
+        if (storedTime) {
+        const [h = 0, m = 0, s = 0] = storedTime.split(':').map(Number);
+        const totalMinutes = h * 60 + m;
+        timeLeftElem.textContent = `${totalMinutes} minutes ${s} seconds`;
+        } else {
+        timeLeftElem.textContent = `${defaultTime} minutes 0 seconds`;
+}});
+
 
     document.getElementById('goalType').addEventListener('change', function () {
     const selected = this.value;
@@ -773,11 +792,11 @@ document.getElementById('goalSelector').addEventListener('change', async functio
         button.addEventListener('click', function() {
             currentSessionId = this.getAttribute('data-session-id');
             const sessionCard = this.closest('.activity-card');
-            const durationText = sessionCard.querySelector('#roundtime')?.textContent || '0';
+            const durationText = sessionCard.querySelector('#timeLeft')?.textContent || '0';
             console.log(durationText, "durationText")
             
             // Parse duration (assuming format like "30 minutes" or "1 hour 30 minutes")
-            initialDuration = parseDurationToSeconds(durationText) 
+            initialDuration = parseFormattedDurationToSeconds(durationText) 
             remainingSeconds = initialDuration;
             
             console.log(remainingSeconds, "remainingSeconds")
@@ -805,14 +824,15 @@ document.getElementById('goalSelector').addEventListener('change', async functio
     document.getElementById('resumeCountdownBtn').addEventListener('click', resumeCountdown);
     document.getElementById('completeSessionBtn').addEventListener('click', completeSession);
 
-    function parseDurationToSeconds(durationText) {
-        // Simple parser - adjust based on your actual duration format
-        const matches = durationText.match(/(\d+)\s*minutes?/i);
-        if (matches && matches[1]) {
-            return parseInt(matches[1]) * 60;
-        }
-        return 1800; // Default to 30 minutes if parsing fails
-    }
+    function parseFormattedDurationToSeconds(text) {
+    const minutesMatch = text.match(/(\d+)\s*minutes?/);
+    const secondsMatch = text.match(/(\d+)\s*seconds?/);
+
+    const minutes = minutesMatch ? parseInt(minutesMatch[1]) : 0;
+    const seconds = secondsMatch ? parseInt(secondsMatch[1]) : 0;
+
+    return minutes * 60 + seconds;
+}
 
     function formatTime(seconds) {
         const hours = Math.floor(seconds / 3600);
@@ -866,29 +886,81 @@ document.getElementById('goalSelector').addEventListener('change', async functio
         }
     }
 
-    async function completeSession() {
-        try {
-            const response = await fetch(`/dashboard/api/sessions/${currentSessionId}/complete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    remaining_seconds: remainingSeconds > 0 ? remainingSeconds : 0
-                })
-            });
-            
-            if (response.ok) {
-                window.location.reload();
-            } else {
-                const error = await response.json();
-                alert(`Error completing session: ${error.message}`);
-            }
-        } catch (err) {
-            console.error('Error completing session:', err);
-            alert('Error completing session. Please try again.');
+async function completeSession() {
+    const enduranceActivities = ['running', 'walking', 'cycling', 'swimming'];
+    const strengthActivities = ['barbell squat', 'bench press', 'deadlift', 'chin-up', 'military press', 'push-up'];
+
+    const activityName = document.getElementById('activityNameDisplay').textContent.trim().toLowerCase();
+    const countdownText = document.getElementById('countdownTimer').textContent.trim();
+
+    const [hours, minutes, seconds] = countdownText.split(':').map(Number);
+    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+    const sessionId = document.getElementById('timeLeft')?.dataset.sessionId;
+    const storageKey = `timeLeft-session-${sessionId}`;
+    const perRoundElem = document.getElementById('roundtime');
+    const perRound = parseInt(perRoundElem.textContent) || 0;
+
+    console.log(totalSeconds, "totalSeconds")
+    console.log(sessionId, "sessionId")
+    console.log(storageKey, "storageKey")
+    console.log(perRound, "perRound")
+
+    if (strengthActivities.includes(activityName)) {
+        if (totalSeconds > 0) { 
+            alert("You should complete ten minutes of training continuously.");
+            return;
         }
+
+        await finishSessionAPI(sessionId, perRound);
+
+    } else if (enduranceActivities.includes(activityName)) {
+        const perRoundElem = document.getElementById('roundtime');
+        const perRound = parseInt(perRoundElem.textContent) || 0;
+
+        if (totalSeconds > 0) {
+            // ⏱️ Store timeLeft in localStorage instead of updating text directly
+            if (storageKey) {
+                localStorage.setItem(storageKey, countdownText);
+            }
+        } else {
+            await finishSessionAPI(sessionId, perRound);
+        }
+
+    } else {
+        await finishSessionAPI(sessionId, perRound);
     }
+
+    const modalElement = document.getElementById('countdownModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+}
+async function finishSessionAPI(sessionId, perRound) {
+    try {
+        const response = await fetch(`/dashboard/api/sessions/${sessionId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ per_round: perRound })
+        });
+
+        if (response.ok) {
+            // 清除 localStorage，重置 timeLeft
+            const key = `timeLeft-session-${sessionId}`;
+            localStorage.removeItem(key);
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(`Error completing session: ${error.message}`);
+        }
+    } catch (err) {
+        console.error('Error completing session:', err);
+        alert('Error completing session. Please try again.');
+    }
+}
     
 </script>
 {% endblock %}
