@@ -14,7 +14,6 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
-    total_duration = db.Column(db.Float, default=0.0)  # 总锻炼时长（分钟）
     # Removed avatar_url to maintain compatibility with existing database
     
     # Relationships
@@ -82,6 +81,16 @@ class User(UserMixin, db.Model):
     def get_following_count(self):
         return self.following.count()
     
+    @property
+    def total_duration(self):
+        """Calculate total training duration in minutes for all completed activity sessions"""
+        total = db.session.query(func.sum(ActivitySession.duration))\
+            .filter(ActivitySession.user_id == self.id,
+                   ActivitySession.is_completed == True,
+                   ActivitySession.duration.isnot(None))\
+            .scalar()
+        return total or 0  # Return 0 if no sessions or all durations are None
+
 
 class PasswordResetToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
