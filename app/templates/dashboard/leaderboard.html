@@ -33,7 +33,7 @@
                 <h6 class="m-0 font-weight-bold text-primary">Most Active Users</h6>
             </div>
             <div class="card-body">
-                {% if active_users %}
+                {% if top_users_by_activity %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -41,11 +41,12 @@
                                 <th>Rank</th>
                                 <th>User</th>
                                 <th>Total Activities</th>
+                                <th>Total Training Time</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user, count in active_users %}
+                            {% for user, count, duration in top_users_by_activity %}
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>
@@ -55,6 +56,11 @@
                                     </div>
                                 </td>
                                 <td>{{ count }}</td>
+                                <td>
+                                    {% set hours = (duration / 60)|int %}
+                                    {% set minutes = (duration % 60)|int %}
+                                    {{ hours }}h {{ minutes }}m
+                                </td>
                                 <td>
                                     {% if current_user.id != user.id %}
                                         {% if current_user.is_following(user) %}
@@ -149,9 +155,66 @@
                 <h6 class="m-0 font-weight-bold text-primary">Achievement Leaders</h6>
             </div>
             <div class="card-body">
-                <div id="achievement-leaders">
-                    <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading achievement leaders...</p>
+                {% if achievement_leaders %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>User</th>
+                                <th>Achievements</th>
+                                <th>Latest Achievement</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user, count, latest_date in achievement_leaders %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" alt="Avatar" class="avatar-sm me-2">
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    {% if latest_achievements[user.id] %}
+                                        <span class="badge bg-success">
+                                            {{ latest_achievements[user.id].title }}
+                                        </span>
+                                        <small class="text-muted d-block">
+                                            {{ latest_date.strftime('%Y-%m-%d') }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">No achievements yet</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if current_user.id != user.id %}
+                                        {% if current_user.is_following(user) %}
+                                        <button class="btn btn-sm btn-outline-danger unfollow-btn" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-user-minus"></i> Unfollow
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-primary follow-btn" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-user-plus"></i> Follow
+                                        </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">You</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p>No achievement data available yet.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -180,9 +243,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Set up follow/unfollow buttons
         setupFollowButtons();
-        
-        // Load achievement leaders
-        loadAchievementLeaders();
         
         // Set up activity distribution chart
         setupActivityDistributionChart();
@@ -242,61 +302,6 @@
                 }
             });
         });
-    }
-    
-    async function loadAchievementLeaders() {
-        // In a real app, we would fetch this from an API endpoint
-        // For now, using placeholder data
-        const achievementLeadersHtml = `
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>User</th>
-                            <th>Achievements</th>
-                            <th>Last Achievement</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=user1@example.com" alt="Avatar" class="avatar-sm me-2">
-                                    <span>user1@example.com</span>
-                                </div>
-                            </td>
-                            <td>8</td>
-                            <td>Marathon Runner</td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=user2@example.com" alt="Avatar" class="avatar-sm me-2">
-                                    <span>user2@example.com</span>
-                                </div>
-                            </td>
-                            <td>7</td>
-                            <td>Century Rider</td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=user3@example.com" alt="Avatar" class="avatar-sm me-2">
-                                    <span>user3@example.com</span>
-                                </div>
-                            </td>
-                            <td>5</td>
-                            <td>Early Bird</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-        document.getElementById('achievement-leaders').innerHTML = achievementLeadersHtml;
     }
     
     function setupActivityDistributionChart() {

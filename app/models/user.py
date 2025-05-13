@@ -81,6 +81,16 @@ class User(UserMixin, db.Model):
     def get_following_count(self):
         return self.following.count()
     
+    @property
+    def total_duration(self):
+        """Calculate total training duration in minutes for all completed activity sessions"""
+        total = db.session.query(func.sum(ActivitySession.duration))\
+            .filter(ActivitySession.user_id == self.id,
+                   ActivitySession.is_completed == True,
+                   ActivitySession.duration.isnot(None))\
+            .scalar()
+        return total or 0  # Return 0 if no sessions or all durations are None
+
 
 class PasswordResetToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
