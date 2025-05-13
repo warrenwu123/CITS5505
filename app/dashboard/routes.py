@@ -169,7 +169,7 @@ def create_goal():
         else:
             return jsonify({'error': 'Unsupported goal type'}), 400
         sessions = []
-        today = datetime.date.today()
+        
         if goal_type == 'strength' or goal_type == 'weightgain':
             
             for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
@@ -178,7 +178,7 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
+                    start_time=datetime.now(),
                     duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
                     sets=p.get('sets'),
@@ -195,7 +195,7 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
+                    start_time=datetime.now(),
                     duration=p.get('target_minutes_per_week'),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
