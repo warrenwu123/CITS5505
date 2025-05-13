@@ -26,6 +26,7 @@
                             <option value="goal-{{ goal.id }}">Goal #{{ goal.id }} - {{ goal.goal_type|title }}</option>
                             {% endfor %}
                     </select>
+                    <div id="goalCount" data-count="{{ goals|length }}"></div>
                 </div>
             </div>
 
@@ -375,18 +376,18 @@
     // Global variables
 let deleteGoalId = null;
 let distributionChart = null;
+let existingGoalsCount = parseInt(document.getElementById('goalCount').dataset.count);
     
 document.addEventListener('DOMContentLoaded', function() {
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
         setupDeleteButtons();
+        
         const timeLeftElem = document.getElementById('timeLeft');
         const sessionId = timeLeftElem.dataset.sessionId;
         const defaultTime = parseInt(timeLeftElem.dataset.default);
         const storageKey = `timeLeft-session-${sessionId}`;
-
-        
         const storedTime = localStorage.getItem(storageKey);
 
         if (storedTime) {
@@ -692,6 +693,10 @@ document.getElementById('goalSelector').addEventListener('change', async functio
 
 
     async function createGoal() {
+        if (existingGoalsCount >= 3) {
+        alert("❗In order to ensure the training effect, you can have up to three goals at a time.");
+        return;
+    }
     // const activityTypeId = document.getElementById('activityType').value;
     const goalType = document.getElementById('goalType').value;
     const targetValue = document.getElementById('targetValue').value;
