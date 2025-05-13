@@ -153,7 +153,7 @@ def create_goal():
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
             start_date=func.now(),
-            end_date=data.get('end_date'),
+            end_date = datetime.datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
             is_completed=False
         )
         
@@ -507,30 +507,124 @@ def check_achievements(user_id):
     earned_ids = [id[0] for id in earned_achievement_ids]
     
     unearned_achievements = Achievement.query.filter(
-        ~Achievement.id.in_(earned_ids)
+        ~Achievement.id.in_(earned_ids) if earned_ids else True
     ).all()
     
     # For each unearned achievement, check if the user meets the requirements
     for achievement in unearned_achievements:
-        # Here we would implement the logic to check achievement requirements
-        # For now, this is placeholder logic
+        # First Activity Achievement
         if achievement.title == "First Activity":
-            activity_count = ActivitySession.query.filter_by(user_id=user_id).count()
+            activity_count = ActivitySession.query.filter_by(
+                user_id=user_id, 
+                is_completed=True
+            ).count()
+            
             if activity_count >= 1:
                 award_achievement(user_id, achievement.id)
         
-        elif achievement.title == "Activity Streak":
-            # Check for 5 consecutive days of activity
-            # This would require more complex date-based queries
-            pass
-        
-        elif achievement.title == "Distance Champion":
-            # Check if total distance exceeds a threshold
-            total_distance = db.session.query(func.sum(ActivitySession.distance))\
-                .filter(ActivitySession.user_id == user_id).scalar() or 0
+        # First Goal Completion Achievement
+        elif achievement.title == "Goal Crusher":
+            completed_goals = Goal.query.filter_by(
+                user_id=user_id, 
+                is_completed=True
+            ).count()
             
-            if total_distance >= 100:  # 100 kilometers for example
+            if completed_goals >= 1:
                 award_achievement(user_id, achievement.id)
+        
+        # Training Time Achievement (1+ hour)
+        elif achievement.title == "Hour Trainer":
+            # Sum of all completed session durations
+            total_duration = db.session.query(func.sum(ActivitySession.duration))\
+                .filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True
+                ).scalar() or 0
+
+            print("Total Duration:", total_duration)
+            
+            if total_duration >= 60:  # 60 minutes = 1 hour
+                award_achievement(user_id, achievement.id)
+        
+        # Calorie Burner Achievement (1000+ calories)
+        elif achievement.title == "Calorie Burner":
+            # Sum of calories burned across all completed sessions
+            total_calories = db.session.query(func.sum(ActivitySession.calories_burned))\
+                .filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True
+                ).scalar() or 0
+            
+            if total_calories >= 1000:
+                award_achievement(user_id, achievement.id)
+        
+        # Activity Streak Achievement (5 consecutive days)
+        elif achievement.title == "Activity Streak":
+            # Get all completed activity sessions ordered by date
+            completed_sessions = ActivitySession.query.filter_by(
+                user_id=user_id,
+                is_completed=True
+            ).order_by(ActivitySession.start_time).all()
+            
+            if completed_sessions:
+                # Extract dates and remove time component
+                session_dates = [session.start_time.date() for session in completed_sessions]
+                # Remove duplicates (multiple activities on same day)
+                unique_dates = sorted(set(session_dates))
+                
+                # Check for streak of 5 consecutive days
+                max_streak = 1
+                current_streak = 1
+                for i in range(1, len(unique_dates)):
+                    # If dates are consecutive
+                    if (unique_dates[i] - unique_dates[i-1]).days == 1:
+                        current_streak += 1
+                        max_streak = max(max_streak, current_streak)
+                    else:
+                        current_streak = 1
+                print("Max Streak:", max_streak)
+                if max_streak >= 5:  # 5-day streak
+                    award_achievement(user_id, achievement.id)
+        
+        # Strength Training Achievement (focused on strength exercises)
+        elif achievement.title == "Strength Enthusiast":
+            # Get IDs of strength-related activity types
+            strength_activity_ids = db.session.query(ActivityType.id)\
+                .filter(ActivityType.name.in_(['Weightlifting', 'Push-ups', 'Pull-ups', 'Squats', 'Deadlifts']))\
+                .all()
+            
+            strength_ids = [id[0] for id in strength_activity_ids]
+            
+            if strength_ids:
+                # Count strength training sessions
+                strength_sessions = ActivitySession.query.filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True,
+                    ActivitySession.activity_type_id.in_(strength_ids)
+                ).count()
+                
+                if strength_sessions >= 5:  # 5+ strength sessions
+                    award_achievement(user_id, achievement.id)
+        
+        # Cardio Master Achievement (focused on cardio exercises)
+        elif achievement.title == "Cardio Master":
+            # Get IDs of cardio-related activity types
+            cardio_activity_ids = db.session.query(ActivityType.id)\
+                .filter(ActivityType.name.in_(['Running', 'Cycling', 'Swimming', 'Jumping Rope', 'HIIT']))\
+                .all()
+            
+            cardio_ids = [id[0] for id in cardio_activity_ids]
+            
+            if cardio_ids:
+                # Count cardio sessions
+                cardio_sessions = ActivitySession.query.filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True,
+                    ActivitySession.activity_type_id.in_(cardio_ids)
+                ).count()
+                
+                if cardio_sessions >= 5:  # 5+ cardio sessions
+                    award_achievement(user_id, achievement.id)
 
 def award_achievement(user_id, achievement_id):
     """Award an achievement to a user"""
@@ -551,3 +645,21 @@ def award_achievement(user_id, achievement_id):
     
     db.session.add(user_achievement)
     db.session.commit()
+
+
+def check_goal_progress(goal_id):
+    """Check if a goal is completed based on its associated sessions"""
+    if not goal_id:
+        return
+        
+    goal = Goal.query.get(goal_id)
+    if not goal:
+        return
+        
+    # Get progress
+    progress = goal.get_progress()
+    
+    # Update goal completion status if progress is 100%
+    if progress["percentage"] >= 100 and not goal.is_completed:
+        goal.is_completed = True
+        db.session.commit()
