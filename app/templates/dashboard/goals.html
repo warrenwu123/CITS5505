@@ -23,7 +23,7 @@
                     <select class="form-select" id="goalSelector">
                         <option value="" selected disabled>Choose a goal</option>
                             {% for goal in goals %}
-                            <option value="goal-{{ goal.id }}">Goal #{{ goal.id }} - {{ goal.goal_type|title }}</option>
+                            <option value="goal-{{ goal.id }}">Goal {{ goal.id }} </option>
                             {% endfor %}
                     </select>
                     <div id="goalCount" data-count="{{ goals|length }}"></div>
@@ -40,7 +40,23 @@
                 </button>
             </div>
         {% else %}
+        <div id="goalCardsContainer" class="mt-3 d-flex flex-nowrap overflow-auto">
             {% for goal in goals %}
+            <div class="goal-card card shadow-sm flex-shrink-0" data-goal-id="{{ goal.id }}" style="width: 200px; margin-right: 15px;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="card-title mb-0 text-light">
+                            Goal {{ goal.id }}
+                        </h6>
+                        <button class="btn btn-sm btn-danger delete-goal-btn" data-goal-id="{{ goal.id }}" title="Delete Goal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+            {% for goal in goals %}   
             <div class="goal-type-container mb-4" data-goal-id="{{ goal.id }}" {% if not loop.first %} style="display:none"{% endif %}>
                 <div class="goal-type-header d-flex justify-content-between align-items-center">
                     <h4 class="goal-title mb-0">
@@ -382,7 +398,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set up event listeners
         document.getElementById('saveGoalBtn').addEventListener('click', createGoal);
         document.getElementById('confirmDeleteBtn').addEventListener('click', deleteGoal);
-        setupDeleteButtons();
+        setupDeleteGoalButtons();
+
+    // Highlight the first goal card by default if exists
+        const firstGoalCard = document.querySelector('.goal-card');
+        if (firstGoalCard) {
+                const firstGoalId = firstGoalCard.getAttribute('data-goal-id');
+                firstGoalCard.classList.add('border-primary', 'shadow-lg');
+                firstGoalCard.style.border = '2px solid #007bff';
+                document.getElementById('goalSelector').value = `goal-${firstGoalId}`;
+            }
+       
         
         const timeLeftElem = document.getElementById('timeLeft');
         const sessionId = timeLeftElem.dataset.sessionId;
@@ -487,27 +513,61 @@ document.getElementById('updateGoalBtn').addEventListener('click', async () => {
 
 
 document.getElementById('goalSelector').addEventListener('change', function() {
-    const GoalId = this.value;
-    
-   
-    document.querySelectorAll('.goal-type-container').forEach(container => {
-        container.style.display = 'none';
-    });
-    
-   
-    if (GoalId && GoalId !== '') {
-        selectedGoalId = GoalId.split('-')[1];
-        const container = document.querySelector(`.goal-type-container[data-goal-id="${selectedGoalId}"]`);
-        if (container) {
-            container.style.display = 'block';
-        }
-    } else {
+const selectedGoalId = this.value ? this.value.split('-')[1] : null;
         
-        document.querySelectorAll('.goal-type-container').forEach((container, index) => {
-            container.style.display = index === 0 ? 'block' : 'none';
+        // Remove highlight from all goal cards
+        document.querySelectorAll('.goal-card').forEach(card => {
+            card.classList.remove('border-primary', 'shadow-lg');
+            card.style.border = '';
         });
-    }
-});
+
+        // Highlight selected goal card
+        if (selectedGoalId) {
+            const selectedCard = document.querySelector(`.goal-card[data-goal-id="${selectedGoalId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('border-primary', 'shadow-lg');
+                selectedCard.style.border = '2px solid #007bff';
+            }
+        }
+
+        // Existing goalSelector change logic
+    document.querySelectorAll('.goal-type-container').forEach(container => {
+            container.style.display = 'none';
+        });
+        
+        if (selectedGoalId && this.value !== '') {
+            const container = document.querySelector(`.goal-type-container[data-goal-id="${selectedGoalId}"]`);
+            if (container) {
+                container.style.display = 'block';
+            }
+        } else {
+            document.querySelectorAll('.goal-type-container').forEach((container, index) => {
+                container.style.display = index === 0 ? 'block' : 'none';
+            });
+        }
+    
+    
+    //     const GoalId = this.value;
+        
+    
+    //     document.querySelectorAll('.goal-type-container').forEach(container => {
+    //         container.style.display = 'none';
+    //     });
+        
+    
+        // if (GoalId && GoalId !== '') {
+        //     selectedGoalId = GoalId.split('-')[1];
+        //     const container = document.querySelector(`.goal-type-container[data-goal-id="${selectedGoalId}"]`);
+        //     if (container) {
+        //         container.style.display = 'block';
+        //     }
+        // } else {
+            
+        //     document.querySelectorAll('.goal-type-container').forEach((container, index) => {
+        //         container.style.display = index === 0 ? 'block' : 'none';
+        //     });
+        // }
+    });
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -541,90 +601,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // let deleteSessionId = null;
 
-function setupDeleteButtons() {
-    const deleteButtons = document.querySelectorAll('.delete-session-btn'); 
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            deleteSessionId = this.getAttribute('data-session-id');
-            console.log(deleteSessionId, "deleteSessionId")
+function setupDeleteGoalButtons() {
+    document.querySelectorAll('.delete-goal-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const goal_id = this.getAttribute('data-goal-id');
+            if (!confirm(`Are you sure you want to delete Goal #${goal_id}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/dashboard/api/goals/delete/${goal_id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log(response, "response")
+
+                if (response.ok) {
+                    alert('Goal deleted successfully!');
+                    window.location.reload(); // Reload to update UI
+                } else {
+                    const error = await response.json();
+                    alert(`Error deleting goal: ${error.message}`);
+                }
+            } catch (err) {
+                console.error('Error deleting goal:', err);
+                alert('An error occurred while deleting the goal.');
+            }
         });
     });
 }
     
-//     function updateGoalUI(data) {
-//     console.log(data, "data")
-//     const container = document.getElementById('sessionContainer');
-//     container.innerHTML = ''; 
 
-    
-//     const grouped = {};
-
-//     data.sessions.forEach(session => {
-//         const goalType = session.goal_type?.name || 'Unknown';
-//         if (!grouped[goalType]) {
-//             grouped[goalType] = [];
-//         }
-//         grouped[goalType].push(session);
-//     });
-
-    
-//     for (const [goalType, sessions] of Object.entries(grouped)) {
-//         const section = document.createElement('div');
-//         section.className = 'mb-4';
-
-//         const header = document.createElement('h4');
-//         header.textContent = `Goal Type: ${goalType}`;
-//         section.appendChild(header);
-
-//         const row = document.createElement('div');
-//         row.className = 'row';
-
-//         sessions.forEach(session => {
-//             const activityName = session.activity_type?.name?.toLowerCase() || '';
-//             const col = document.createElement('div');
-//             col.className = 'col-md-4';
-
-//             const card = document.createElement('div');
-//             card.className = 'card mb-3 shadow-sm';
-
-//             const body = document.createElement('div');
-//             body.className = 'card-body';
-
-//             body.innerHTML = `
-//                 <h5 class="card-title">${session.activity_type?.name || 'Unknown'}</h5>
-//                 <p class="card-text"><strong>Start:</strong> ${formatDateTime(session.start_time)}</p>
-//                 <p class="card-text"><strong>End:</strong> ${session.end_time ? formatDateTime(session.end_time) : 'Ongoing'}</p>
-//                 <p class="card-text"><strong>Completed:</strong> ${session.is_completed ? 'Yes' : 'No'}</p>
-//             `;
-
-            
-//             const cardioTypes = ['running', 'walking', 'cycling', 'swimming'];
-//             const strengthTypes = [
-//                 'barbell squat', 'bench press', 'deadlift',
-//                 'chin-up', 'military press', 'push-up'
-//             ];
-
-//             if (cardioTypes.includes(activityName)) {
-//                 body.innerHTML += `
-//                     <p class="card-text"><strong>Duration:</strong> ${formatDuration(session.duration)}</p>
-//                     <p class="card-text"><strong>Calories:</strong> ${session.calories_burned ?? 'N/A'}</p>
-//                 `;
-//             } else if (strengthTypes.includes(activityName)) {
-//                 body.innerHTML += `
-//                     <p class="card-text"><strong>Sets:</strong> ${session.sets ?? 'N/A'}</p>
-//                     <p class="card-text"><strong>Reps:</strong> ${session.reps ?? 'N/A'}</p>
-//                 `;
-//             }
-
-//             card.appendChild(body);
-//             col.appendChild(card);
-//             row.appendChild(col);
-//         });
-
-//         section.appendChild(row);
-//         container.appendChild(section);
-//     }
-// }
 
     function formatDateTime(isoString) {
         const dt = new Date(isoString);
@@ -692,7 +701,7 @@ document.getElementById('goalSelector').addEventListener('change', async functio
 })
 
 
-    async function createGoal() {
+async function createGoal() {
         if (existingGoalsCount >= 3) {
         alert("❗In order to ensure the training effect, you can have up to three goals at a time.");
         return;
@@ -765,7 +774,7 @@ document.getElementById('goalSelector').addEventListener('change', async functio
 }
     
     
-    async function deleteGoal() {
+async function deleteGoal() {
         if (!deleteSessionId) return;
         
         try {

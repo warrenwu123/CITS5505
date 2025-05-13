@@ -270,17 +270,18 @@ def delete_activity_session(session_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@dashboard_bp.route('/api/goals/delete_all', methods=['DELETE'])
-def delete_all_goals():
+@dashboard_bp.route('/api/goals/delete/<int:goal_id>', methods=['DELETE'])
+def delete_all_goals(goal_id):
+    if not goal_id:
+        return jsonify({"error": "Goal ID is required."}), 400
     try:
-        Goal.query.filter_by(user_id=current_user.id).delete()
+        Goal.query.filter_by(user_id=current_user.id,id=goal_id).delete()
         db.session.commit()
-
-        # Reset SQLite auto-increment counter
-
+        
         return jsonify({"message": "All goals deleted and ID reset."}), 200
     except Exception as e:
         db.session.rollback()
+        print("Error:", str(e))
         return jsonify({"error": str(e)}), 500
     
 @dashboard_bp.route('/api/session_distribution', methods=['GET'])

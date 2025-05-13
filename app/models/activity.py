@@ -69,7 +69,7 @@ class Goal(db.Model):
         created_at = db.Column(db.DateTime, default=func.now())
         updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
 
-        activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True)
+        activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True,cascade="all, delete-orphan")
         
         def __repr__(self):
             return f'<Goal {self.goal_type} {self.target_value}>'
