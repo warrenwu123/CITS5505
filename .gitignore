@@ -2,3 +2,8 @@
 __pycache__/
 .DS_Store
 myvenv/
+
+__pycache__/
+*.pyc
+instance/
+*.db
