@@ -14,6 +14,9 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
+    total_duration = db.Column(db.Float, default=0.0)
+    name = db.Column(db.String(100), nullable=True)  # 用户名字
+    bio = db.Column(db.Text, nullable=True)  # 用户自我介绍
     # Removed avatar_url to maintain compatibility with existing database
     
     # Relationships
@@ -31,6 +34,17 @@ class User(UserMixin, db.Model):
     following = db.relationship('Follow',
                                foreign_keys='Follow.follower_id',
                                backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade="all, delete-orphan")
+    # 添加分享权限关系
+    shared_with = db.relationship('ShareUser',
+                                 foreign_keys='ShareUser.user_id',
+                                 backref=db.backref('user', lazy='joined'),
+                                 lazy='dynamic',
+                                 cascade="all, delete-orphan")
+    shared_by = db.relationship('ShareUser',
+                               foreign_keys='ShareUser.shared_user_id',
+                               backref=db.backref('shared_user', lazy='joined'),
                                lazy='dynamic',
                                cascade="all, delete-orphan")
     
@@ -142,3 +156,25 @@ class Follow(db.Model):
     
     def __repr__(self):
         return f'<Follow {self.follower_id} -> {self.followed_id}>'
+
+
+class ShareUser(db.Model):
+    """记录用户分享权限的表"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # 被分享的用户
+    shared_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # 获得分享权限的用户
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    
+    def __repr__(self):
+        return f'<ShareUser {self.user_id} -> {self.shared_user_id}>'
+    
+    @staticmethod
+    def can_view_profile(user_id, viewer_id):
+        """检查viewer_id是否有权限查看user_id的信息"""
+        if user_id == viewer_id:  # 用户总是可以查看自己的信息
+            return True
+        return ShareUser.query.filter_by(
+            user_id=user_id,
+            shared_user_id=viewer_id
+        ).first() is not None

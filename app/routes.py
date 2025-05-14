@@ -1,10 +1,10 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy import text
 
 from app import db
-from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
+from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType, ShareUser
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
 
@@ -363,7 +363,7 @@ def follow_user(user_id):
         current_user.follow(user_to_follow)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'You are now following {user_to_follow.email}'})
+        return jsonify({'success': True, 'message': f'You are now following {user_to_follow.id}'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
@@ -387,7 +387,7 @@ def unfollow_user(user_id):
         current_user.unfollow(user_to_unfollow)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'You have unfollowed {user_to_unfollow.email}'})
+        return jsonify({'success': True, 'message': f'You have unfollowed {user_to_unfollow.id}'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
@@ -462,3 +462,94 @@ def award_achievement(user_id, achievement_id):
     
     db.session.add(user_achievement)
     db.session.commit()
+
+@dashboard_bp.route('/user/<int:user_id>')
+@login_required
+def view_user_profile(user_id):
+    """查看用户资料页面"""
+    user = User.query.get_or_404(user_id)
+    
+    # 检查是否有权限查看
+    if not ShareUser.can_view_profile(user_id, current_user.id):
+        flash('You do not have permission to view this user\'s profile.', 'error')
+        return redirect(url_for('dashboard.index'))
+    
+    # 获取用户的基本信息
+    user_info = {
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'bio': user.bio,
+        'total_duration': user.total_duration,
+        'created_at': user.created_at,
+        'achievements': [ua.achievement for ua in user.user_achievements],
+        'followers_count': user.get_followers_count(),
+        'following_count': user.get_following_count()
+    }
+    
+    return render_template('dashboard/user_profile.html', user=user_info)
+
+@dashboard_bp.route('/api/search-users', methods=['GET'])
+@login_required
+def search_users():
+    """搜索用户API"""
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify([])
+    
+    # 搜索用户名或邮箱
+    users = User.query.filter(
+        or_(
+            User.email.ilike(f'%{query}%'),
+            User.id.ilike(f'%{query}%')
+        )
+    ).filter(User.id != current_user.id).limit(10).all()
+    
+    return jsonify([{
+        'id': user.id,
+        'email': user.email,
+        'name': user.name
+    } for user in users])
+
+@dashboard_bp.route('/api/share-profile/<int:user_id>', methods=['POST'])
+@login_required
+def share_profile(user_id):
+    """分享个人资料给其他用户"""
+    if user_id == current_user.id:
+        return jsonify({'error': 'Cannot share with yourself'}), 400
+    
+    user = User.query.get_or_404(user_id)
+    
+    # 检查是否已经分享过
+    existing = ShareUser.query.filter_by(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    ).first()
+    
+    if existing:
+        return jsonify({'error': 'Already shared with this user'}), 400
+    
+    # 创建新的分享记录
+    share = ShareUser(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    )
+    
+    db.session.add(share)
+    db.session.commit()
+    
+    return jsonify({'message': f'Profile shared with {user.id}'})
+
+@dashboard_bp.route('/api/revoke-share/<int:user_id>', methods=['POST'])
+@login_required
+def revoke_share(user_id):
+    """撤销分享权限"""
+    share = ShareUser.query.filter_by(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    ).first_or_404()
+    
+    db.session.delete(share)
+    db.session.commit()
+    
+    return jsonify({'message': 'Share permission revoked'})

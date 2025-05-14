@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>User Management</h2>
+    
+    <!-- 搜索用户部分 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Share Your Profile</h4>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <input type="text" id="userSearch" class="form-control" placeholder="Search users by name or email...">
+                <div id="searchResults" class="list-group mt-2" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 已分享给其他用户的列表 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Users You've Shared With</h4>
+        </div>
+        <div class="card-body">
+            {% if users_shared_with %}
+                <div class="list-group">
+                    {% for user in users_shared_with %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">{{ user.id or user.email }}</h5>
+                            <small class="text-muted">{{ user.email }}</small>
+                        </div>
+                        <button class="btn btn-danger btn-sm revoke-share" data-user-id="{{ user.id }}">
+                            Revoke Access
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">You haven't shared your profile with anyone yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 其他用户分享给你的列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Users Who Shared With You</h4>
+        </div>
+        <div class="card-body">
+            {% if shared_users %}
+                <div class="list-group">
+                    {% for user in shared_users %}
+                    <a href="{{ url_for('dashboard.view_user_profile', user_id=user.id) }}" 
+                       class="list-group-item list-group-item-action">
+                        <h5 class="mb-1">{{ user.id or user.email }}</h5>
+                        <small class="text-muted">{{ user.email }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No one has shared their profile with you yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearch');
+    const searchResults = document.getElementById('searchResults');
+    let searchTimeout;
+    
+    // 搜索用户
+    searchInput.addEventListener('input', function() {
+        console.log('Input event triggered:', this.value);
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetch('/dashboard/api/search-users?q=' + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(users => {
+                    searchResults.innerHTML = '';
+                    if (users.length > 0) {
+                        users.forEach(user => {
+                            const div = document.createElement('div');
+                            div.className = 'list-group-item list-group-item-action';
+                            div.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">${user.id || user.email}</h6>
+                                        <small class="text-muted">${user.email}</small>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm share-profile" 
+                                            data-user-id="${user.id}">
+                                        Share Profile
+                                    </button>
+                                </div>
+                            `;
+                            searchResults.appendChild(div);
+                        });
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.style.display = 'none';
+                    }
+                });
+        }, 300);
+    });
+    
+    // 分享个人资料
+    searchResults.addEventListener('click', function(e) {
+        if (e.target.classList.contains('share-profile')) {
+            const userId = e.target.dataset.userId;
+            fetch('/dashboard/api/share-profile/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(data.message);
+                    location.reload();
+                }
+            });
+        }
+    });
+    
+    // 撤销分享权限
+    document.querySelectorAll('.revoke-share').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to revoke access?')) {
+                const userId = this.dataset.userId;
+                fetch('/dashboard/api/revoke-share/' + userId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

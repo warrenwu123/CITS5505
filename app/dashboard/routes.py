@@ -1,10 +1,11 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy import text
 
 from app import db
 from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
+from app.models.user import ShareUser
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
 
@@ -643,3 +644,87 @@ def check_goal_progress(goal_id):
     if progress["percentage"] >= 100 and not goal.is_completed:
         goal.is_completed = True
         db.session.commit()
+
+@dashboard_bp.route('/api/user-basic/<int:user_id>')
+@login_required
+def user_basic_info(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'email': user.email,
+        'bio': user.bio,
+        'id': user.id
+    })
+
+@dashboard_bp.route('/user-management')
+@login_required
+def user_management():
+    """用户管理页面"""
+    # 获取所有已分享给当前用户的用户
+    shared_users = db.session.query(User).join(
+        ShareUser, ShareUser.user_id == User.id
+    ).filter(ShareUser.shared_user_id == current_user.id).all()
+    # 获取当前用户分享给其他用户的列表
+    users_shared_with = db.session.query(User).join(
+        ShareUser, ShareUser.shared_user_id == User.id
+    ).filter(ShareUser.user_id == current_user.id).all()
+    return render_template('dashboard/user_management.html',
+                         shared_users=shared_users,
+                         users_shared_with=users_shared_with)
+
+@dashboard_bp.route('/user/<int:user_id>')
+@login_required
+def view_user_profile(user_id):
+    """用户详情页面"""
+    user = User.query.get_or_404(user_id)
+    from app.models.user import ShareUser  # 添加这行导入
+    return render_template('dashboard/user_profile.html', 
+                         user=user, 
+                         ShareUser=ShareUser,  # 添加 ShareUser 到模板上下文
+                         followers_count=user.get_followers_count(),  # 添加这些统计数据
+                         following_count=user.get_following_count())
+
+@dashboard_bp.route('/api/search-users', methods=['GET'])
+@login_required
+def search_users():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify([])
+    users = User.query.filter(
+        or_(
+            User.email.ilike(f'%{query}%'),
+            User.id.ilike(f'%{query}%')
+        )
+    ).filter(User.id != current_user.id).limit(10).all()
+    return jsonify([{
+        'id': user.id,
+        'email': user.email,
+        'name': user.name
+    } for user in users])
+
+@dashboard_bp.route('/api/share-profile/<int:user_id>', methods=['POST'])
+@login_required
+def share_profile(user_id):
+    if user_id == current_user.id:
+        return jsonify({'error': 'Cannot share with yourself'}), 400
+
+    user = User.query.get_or_404(user_id)
+
+    # 检查是否已经分享过
+    existing = ShareUser.query.filter_by(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    ).first()
+
+    if existing:
+        return jsonify({'error': 'Already shared with this user'}), 400
+
+    # 创建新的分享记录
+    share = ShareUser(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    )
+
+    db.session.add(share)
+    db.session.commit()
+
+    return jsonify({'message': f'Profile shared with {user.email}'})
