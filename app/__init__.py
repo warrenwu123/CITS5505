@@ -62,7 +62,7 @@ login_manager.login_message_category = 'info'
 from .auth import auth_bp
 from .dashboard import dashboard_bp
 app.register_blueprint(auth_bp)
-app.register_blueprint(dashboard_bp)
+app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
 # Load user from user_id stored in the session
 @login_manager.user_loader
@@ -90,3 +90,9 @@ def tutorials():
         return redirect(url_for('auth.sign_in'))
     
     return render_template('tutorials.html')
+
+from app.models.user import ShareUser
+
+@app.context_processor
+def inject_shareuser():
+    return dict(ShareUser=ShareUser)

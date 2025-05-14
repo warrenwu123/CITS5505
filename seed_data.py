@@ -1,5 +1,6 @@
 from app import app, db
 from app.models import ActivityType, FitnessLevelConfig, GoalType, User, MFAToken, PasswordResetToken, EmailVerificationToken, ActivitySession, Achievement, UserAchievement, Goal, Follow
+import datetime
 
 with app.app_context():
         # Import models to ensure they're registered with SQLAlchemy
@@ -157,3 +158,34 @@ with app.app_context():
     db.session.commit()
     print("Achievements seeded successfully.")
     print([a.title for a in Achievement.query.all()])
+
+    # Create test users
+    users = []
+    for i in range(1, 4):
+        email = f"testuser{i}@example.com"
+        user = User(email=email, password_hash="test", is_active=True, is_email_verified=True)
+        db.session.add(user)
+        users.append(user)
+    db.session.commit()
+
+    # Get the first activity type, or create one if none exists
+    activity_type = ActivityType.query.first()
+    if not activity_type:
+        activity_type = ActivityType(name="Running")
+        db.session.add(activity_type)
+        db.session.commit()
+
+    # Add 2 activity sessions for each test user
+    for user in users:
+        for j in range(2):
+            session = ActivitySession(
+                user_id=user.id,
+                activity_type_id=activity_type.id,
+                start_time=datetime.datetime.now() - datetime.timedelta(days=j),
+                duration=30 + j * 10,
+                is_completed=True
+            )
+            db.session.add(session)
+    db.session.commit()
+
+    print("Test users and activity data have been generated!")

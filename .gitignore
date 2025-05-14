@@ -12,3 +12,6 @@ __pycache__/
 *.pyc
 *.db
 instance/
+
+__pycache__/
+*.pyc

@@ -50,10 +50,11 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" alt="Avatar" class="avatar-sm me-2">
-                                        <span>{{ user.email }}</span>
-                                    </div>
+                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" 
+                                         alt="Avatar" class="avatar-sm me-1 leaderboard-avatar" 
+                                         style="vertical-align: middle; cursor:pointer;" 
+                                         data-user-id="{{ user.id }}">
+                                    <span style="vertical-align: middle;">{{ user.email }}</span>
                                 </td>
                                 <td>{{ count }}</td>
                                 <td>
@@ -113,10 +114,11 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" alt="Avatar" class="avatar-sm me-2">
-                                        <span>{{ user.email }}</span>
-                                    </div>
+                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" 
+                                         alt="Avatar" class="avatar-sm me-1 leaderboard-avatar" 
+                                         style="vertical-align: middle; cursor:pointer;" 
+                                         data-user-id="{{ user.id }}">
+                                    <span style="vertical-align: middle;">{{ user.email }}</span>
                                 </td>
                                 <td>{{ count }}</td>
                                 <td>
@@ -172,10 +174,11 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" alt="Avatar" class="avatar-sm me-2">
-                                        <span>{{ user.email }}</span>
-                                    </div>
+                                    <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ user.email }}" 
+                                         alt="Avatar" class="avatar-sm me-1 leaderboard-avatar" 
+                                         style="vertical-align: middle; cursor:pointer;" 
+                                         data-user-id="{{ user.id }}">
+                                    <span style="vertical-align: middle;">{{ user.email }}</span>
                                 </td>
                                 <td>{{ count }}</td>
                                 <td>
@@ -235,9 +238,30 @@
         </div>
     </div>
 </div>
+
+<!-- 用户基本信息 Modal -->
+<div class="modal fade" id="userBasicInfoModal" tabindex="-1" aria-labelledby="userBasicInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="userBasicInfoModalLabel">User Basic Info</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Email:</strong> <span id="modalUserEmail"></span></p>
+        <p><strong>Bio:</strong> <span id="modalUserBio"></span></p>
+        <p><strong>User ID:</strong> <span id="modalUserId"></span></p>
+        <a id="viewDetailBtn" class="btn btn-primary mt-2" style="display:none;" target="_blank">View Details</a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block dashboard_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -348,5 +372,26 @@
             }
         });
     }
+
+    // 头像点击弹窗显示基本信息
+    $(document).on('click', '.leaderboard-avatar', function() {
+        const userId = $(this).data('user-id');
+        console.log('User ID:', userId);
+        $.get(`/dashboard/api/user-basic/${userId}`)
+          .done(function(data) {
+              console.log('Data:', data);
+              $('#modalUserEmail').text(data.email);
+              $('#modalUserBio').text(data.bio || 'No bio');
+              $('#modalUserId').text(data.id);
+              // 设置"View Details"按钮链接并显示
+              $('#viewDetailBtn').attr('href', '/dashboard/user/' + userId).show();
+              $('#userBasicInfoModal').modal('show');
+          })
+          .fail(function(xhr) {
+              alert('Failed to load user info: ' + xhr.status);
+              console.error(xhr);
+              $('#viewDetailBtn').hide();
+          });
+    });
 </script>
 {% endblock %}
