@@ -144,7 +144,7 @@
                                     </div>
                                     <div class="detail-row">
                                         <span class="detail-label text-light"><i class="fas fa-redo text-success me-1"></i> Reps:</span>
-                                        <span class="detail-value">{{ session.reps or 'N/A' }}</span>
+                                        <span class="detail-value" id="reps">{{ session.reps or 'N/A' }}</span>
                                     </div>
                                 {% endif %}
                             </div>
@@ -925,7 +925,14 @@ async function completeSession() {
             alert("You should complete ten minutes of training continuously.");
             return;
         }
-
+        const repsElement = document.getElementById('reps');
+        const actualReps = parseInt(repsElement?.textContent.trim()) || 0;
+        await recordSessionProcess({
+            type: 'strength',
+            sessionId: sessionId,
+            actualDuration: perRound,
+            actualReps: actualReps
+        });
         await finishSessionAPI(sessionId, perRound);
 
     } else if (enduranceActivities.includes(activityName)) {
@@ -933,6 +940,11 @@ async function completeSession() {
         const perRound = parseInt(perRoundElem.textContent) || 0;
 
         if (totalSeconds > 0) {
+            await recordSessionProcess({
+                type: 'endurance',
+                sessionId: sessionId,
+                actualDuration: perRound - totalSeconds
+            });
             // ⏱️ Store timeLeft in localStorage instead of updating text directly
             if (storageKey) {
                 localStorage.setItem(storageKey, countdownText);
@@ -951,6 +963,37 @@ async function completeSession() {
         modalInstance.hide();
     }
 }
+
+async function recordSessionProcess({ type, sessionId, actualDuration, actualReps = null }) {
+    const payload = {
+        session_id: sessionId,
+        actual_duration: actualDuration
+    };
+
+    if (type === 'strength' && actualReps !== null) {
+        payload.actual_reps = actualReps;
+    }
+
+    try {
+        const response = await fetch('/dashboard/api/sessions/record_process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            console.error("Error recording session process:", result.message || result.error);
+        } else {
+            console.log("Recorded session process:", result.message);
+        }
+    } catch (error) {
+        console.error("Failed to record session process:", error);
+    }
+}
+
 async function finishSessionAPI(sessionId, perRound) {
     try {
         const response = await fetch(`/dashboard/api/sessions/${sessionId}/complete`, {
@@ -962,7 +1005,7 @@ async function finishSessionAPI(sessionId, perRound) {
         });
 
         if (response.ok) {
-            // 清除 localStorage，重置 timeLeft
+        
             const key = `timeLeft-session-${sessionId}`;
             localStorage.removeItem(key);
             window.location.reload();
