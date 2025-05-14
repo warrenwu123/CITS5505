@@ -95,6 +95,38 @@
                     </div>
                 </div>
             </div>
+            <!-- Total Duration -->
+            <div class="col-md-6 col-xl-12 mb-4">
+                <div class="card shadow h-100 py-2 border-left-dark">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-light text-uppercase mb-1">Total Duration</div>
+                                <div class="h5 mb-0 font-weight-bold">{{ current_user.get_total_duration() }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Calories -->
+        <div class="col-md-6 col-xl-12 mb-4">
+            <div class="card shadow h-100 py-2 border-left-danger">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Calories</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ current_user.get_total_calories() }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-fire fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 </div>
@@ -115,7 +147,7 @@
                     {% for session in sessions[:5] %}
                     <div class="list-group-item d-flex flex-wrap align-items-center justify-content-between py-3 px-2 mb-3 rounded border border-secondary shadow-sm activity-row">
                         
-                        <!-- 图标 -->
+                        
                         <div class="d-flex align-items-center me-3">
                             {% set name = session.activity_type.name|lower %}
                             <i class="fs-4 text-info me-2 
@@ -128,25 +160,25 @@
                                 {% else %}fas fa-heartbeat{% endif %}"></i>
                         </div>
         
-                        <!-- 活动标题和时间 -->
+                       
                         <div class="flex-grow-1 me-3" style="min-width: 150px;">
                             <div class="fw-bold text-capitalize text-light">{{ session.activity_type.name }}</div>
                             <small class="text-muted">{{ session.start_time.strftime('%b %d, %Y') }}</small>
                         </div>
         
-                        <!-- 状态 -->
+                       
                         <div class="me-3">
                             <span class="badge {{ 'bg-success' if session.is_completed else 'bg-secondary' }}">
                                 {{ 'Completed' if session.is_completed else 'Pending' }}
                             </span>
                         </div>
         
-                        <!-- 时长 -->
+                        
                         <div class="me-3 text-nowrap">
                             <i class="fas fa-clock text-muted me-1"></i>{{ session.duration or 'N/A' }}
                         </div>
         
-                        <!-- 详细信息 -->
+                        
                         <div class="text-nowrap">
                             {% if session.distance %}
                                 <i class="fas fa-route text-info me-1"></i>{{ session.distance }} km
@@ -185,9 +217,9 @@
             <div class="card-body">
                 {% if current_user.goals|selectattr('is_completed', 'equalto', false)|list|length > 0 %}
                 {% set active_goals = current_user.goals|selectattr('is_completed', 'equalto', false)|list %}
-                {% for goal in active_goals[:3] %}
+                {% for goal in active_goals %}
                 <h4 class="small font-weight-bold">
-                    {{ goal.id }} - {{ goal.goal_type|title }}: {{ goal.target_value }}
+                    {{ goal.id }} - {{ goal.goal_type.name }}: {{ goal.target_value }}
                     <span class="float-end">{{ goal.get_progress().percentage|round|int }}%</span>
                 </h4>
                 <div class="progress mb-4">
@@ -326,70 +358,47 @@
         document.getElementById('activityDate').value = today;
     });
     
-    function setupActivityChart() {
-        const chartElement = document.getElementById('activityChart');
-        if (!chartElement) {
-            console.error('Chart element not found');
-            return;
-        }
+    async function setupActivityChart() {
+    const chartElement = document.getElementById('activityChart');
+    if (!chartElement) {
+        console.error('Chart element not found');
+        return;
+    }
+
+    try {
+        const ctx = chartElement.getContext('2d');
+
         
-        try {
-            const ctx = chartElement.getContext('2d');
-            
-            // Last 7 days dates
-            const dates = Array.from({ length: 7 }, (_, i) => {
-                const date = new Date();
-                date.setDate(date.getDate() - (6 - i));
-                return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-            });
-            
-            // Sample data - this would be replaced with real user data
-            const data = {
-                labels: dates,
-                datasets: [
-                    {
-                        label: 'Running (km)',
-                        data: [0, 0, 5.2, 0, 3.7, 0, 0],
-                        backgroundColor: 'rgba(78, 115, 223, 0.5)',
-                        borderColor: 'rgba(78, 115, 223, 1)',
-                        borderWidth: 1
+        const response = await fetch('/dashboard/api/activity_chart_data');
+        if (!response.ok) {
+            throw new Error('Failed to fetch activity chart data');
+        }
+
+        const chartData = await response.json();  
+
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: chartData.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: false
                     },
-                    {
-                        label: 'Cycling (km)',
-                        data: [12, 0, 0, 0, 0, 15, 0],
-                        backgroundColor: 'rgba(28, 200, 138, 0.5)',
-                        borderColor: 'rgba(28, 200, 138, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Weight Training (min)',
-                        data: [0, 45, 0, 30, 0, 0, 0],
-                        backgroundColor: 'rgba(54, 185, 204, 0.5)',
-                        borderColor: 'rgba(54, 185, 204, 1)',
-                        borderWidth: 1
-                    }
-                ]
-            };
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            stacked: false
-                        },
-                        y: {
-                            beginAtZero: true
-                        }
+                    y: {
+                        beginAtZero: true
                     }
                 }
-            });
-        } catch (error) {
-            console.error('Error setting up chart:', error);
-        }
+            }
+        });
+    } catch (error) {
+        console.error('Error setting up chart:', error);
     }
+}
 </script>
 {% endblock %}

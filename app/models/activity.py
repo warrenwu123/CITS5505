@@ -69,7 +69,7 @@ class Goal(db.Model):
         created_at = db.Column(db.DateTime, default=func.now())
         updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
 
-        activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True)
+        activity_sessions = db.relationship('ActivitySession', backref='goal', lazy=True,cascade="all, delete-orphan")
         
         def __repr__(self):
             return f'<Goal {self.goal_type} {self.target_value}>'
@@ -101,7 +101,9 @@ class ActivitySession(db.Model):
     is_completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
     updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
-    
+    finished_at = db.Column(db.DateTime, nullable=True)
+  
+    # activity_records = db.relationship('ActivityRecord', backref='session', lazy='dynamic')
     def __repr__(self):
         return f'<ActivitySession {self.id}>'
     
@@ -123,6 +125,17 @@ class ActivitySession(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+class ActivityRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('activity_session.id'), nullable=False)
+
+    actual_duration = db.Column(db.Float, nullable=True)  
+    actual_reps = db.Column(db.Integer, nullable=True)    
+
+    timestamp = db.Column(db.DateTime, default=func.now()) 
+
+    session = db.relationship('ActivitySession', backref=db.backref('records', lazy=True))
 
 
 class Achievement(db.Model):

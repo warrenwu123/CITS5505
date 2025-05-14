@@ -298,6 +298,63 @@ body {
     background-color: rgba(0, 0, 0, 0.1);
 }
 
+/* goal displaying card */
+.goal-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.goal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.goal-card.border-primary {
+    border: 2px solid #007bff !important;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5) !important;
+}
+
+.delete-goal-btn {
+    padding: 2px 6px;
+    line-height: 1;
+}
+
+.delete-goal-btn i {
+    font-size: 12px;
+}
+
+/* Horizontal Scrollbar Styling */
+#goalCardsContainer {
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: #007bff transparent; /* For Firefox */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+#goalCardsContainer::-webkit-scrollbar {
+    height: 8px; /* Height of horizontal scrollbar */
+}
+
+#goalCardsContainer::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1); /* Track background */
+    border-radius: 4px;
+}
+
+#goalCardsContainer::-webkit-scrollbar-thumb {
+    background: #007bff; /* Scrollbar thumb color */
+    border-radius: 4px;
+}
+
+#goalCardsContainer::-webkit-scrollbar-thumb:hover {
+    background: #0056b3; /* Darker on hover */
+}
+
+/* Ensure container doesn't stretch unnecessarily */
+#goalCardsContainer {
+    padding-bottom: 10px; /* Space for scrollbar */
+}
+
+
+
 /* Modal Styling */
 
 
