@@ -4,7 +4,7 @@ from sqlalchemy import func, or_
 from sqlalchemy import text
 
 from app import db
-from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType
+from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType,ActivityRecord
 from app.models.user import ShareUser
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
@@ -178,14 +178,12 @@ def create_goal():
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
             start_date=func.now(),
+            end_date = datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
             end_date = datetime.datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
             is_completed=False
         )
         
-        db.session.add(goal)
-        db.session.commit()
-       
-        
+
         if goal_type == 'weightloss':
             plan = generate_weightloss_plan(goal)   
         elif goal_type == 'strength':
@@ -197,7 +195,7 @@ def create_goal():
         else:
             return jsonify({'error': 'Unsupported goal type'}), 400
         sessions = []
-        today = datetime.date.today()
+        
         if goal_type == 'strength' or goal_type == 'weightgain':
             
             for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
@@ -206,9 +204,10 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
+                    start_time=datetime.now(),
                     duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
+                    sets=p.get('sets'),
                     calories_burned=None,
                     notes=None,
                     is_completed=False
@@ -222,14 +221,16 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
+                    start_time=datetime.now(),
                     duration=p.get('target_minutes_per_week'),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
                     is_completed=False,
                 )
                 sessions.append(session)
-
+        
+        db.session.add(goal)
+        db.session.commit()
         db.session.add_all(sessions)
         db.session.commit()
 
@@ -295,32 +296,98 @@ def delete_activity_session(session_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@dashboard_bp.route('/api/goals/delete_all', methods=['DELETE'])
-def delete_all_goals():
+@dashboard_bp.route('/api/goals/delete/<int:goal_id>', methods=['DELETE'])
+def delete_all_goals(goal_id):
+    if not goal_id:
+        return jsonify({"error": "Goal ID is required."}), 400
     try:
-        Goal.query.filter_by(user_id=current_user.id).delete()
+        Goal.query.filter_by(user_id=current_user.id,id=goal_id).delete()
         db.session.commit()
-
-        # Reset SQLite auto-increment counter
-
+        
         return jsonify({"message": "All goals deleted and ID reset."}), 200
     except Exception as e:
         db.session.rollback()
+        print("Error:", str(e))
         return jsonify({"error": str(e)}), 500
     
 @dashboard_bp.route('/api/session_distribution', methods=['GET'])
 @login_required
 def session_distribution():
+
+    goal_id = request.args.get('goal_id', type=int)
+    
+    if goal_id is None:
+        return jsonify({'error': 'Missing goal_id parameter'}), 400
+    
     results = (
         db.session.query(ActivityType.name, func.count(ActivitySession.id))
         .join(ActivitySession, ActivitySession.activity_type_id == ActivityType.id)
         .filter(ActivitySession.user_id == current_user.id)
+        .filter(ActivitySession.goal_id == goal_id)
         .group_by(ActivityType.name)
         .all()
     )
     labels = [r[0] for r in results]
     data = [r[1] for r in results]
     return jsonify({'labels': labels, 'data': data})
+
+from datetime import datetime, timedelta
+from collections import defaultdict
+@dashboard_bp.route('/api/activity_chart_data', methods=['GET'])
+@login_required
+def get_activity_chart_data():
+    today = datetime.today().date()
+    start_date = today - timedelta(days=6)
+
+    records = (
+        db.session.query(ActivityRecord, ActivitySession, ActivityType)
+        .join(ActivitySession, ActivityRecord.session_id == ActivitySession.id)
+        .join(ActivityType, ActivitySession.activity_type_id == ActivityType.id)
+        .filter(ActivitySession.user_id == current_user.id)
+        .filter(ActivityRecord.timestamp >= start_date)
+        .all()
+    )
+
+    date_labels = [(start_date + timedelta(days=i)).strftime('%a, %b %d') for i in range(7)]
+    activity_data = defaultdict(lambda: [0] * 7)
+
+    for record, session, activity_type in records:
+        activity_name = activity_type.name
+        timestamp_date = record.timestamp.date()
+        day_index = (timestamp_date - start_date).days
+
+        if 0 <= day_index < 7 and record.actual_duration:
+            activity_data[activity_name][day_index] += record.actual_duration
+
+    colors = {
+        "Running": ('rgba(78, 115, 223, 0.5)', 'rgba(78, 115, 223, 1)'),
+        "Cycling": ('rgba(28, 200, 138, 0.5)', 'rgba(28, 200, 138, 1)'),
+        "Walking": ('rgba(133, 135, 150, 0.5)', 'rgba(133, 135, 150, 1)'),
+        "Swimming": ('rgba(231, 74, 59, 0.5)', 'rgba(231, 74, 59, 1)'),
+        "Barbell Squat": ('rgba(54, 185, 204, 0.5)', 'rgba(54, 185, 204, 1)'),
+        "Bench Press": ('rgba(246, 194, 62, 0.5)', 'rgba(246, 194, 62, 1)'),
+        "Deadlift": ('rgba(90, 92, 105, 0.5)', 'rgba(90, 92, 105, 1)'),
+        "Chin-up": ('rgba(58, 123, 213, 0.5)', 'rgba(58, 123, 213, 1)'),
+        "Military Press": ('rgba(100, 181, 246, 0.5)', 'rgba(100, 181, 246, 1)'),
+        "Push-up": ('rgba(255, 99, 132, 0.5)', 'rgba(255, 99, 132, 1)')
+    }
+
+    datasets = []
+    for activity, data_points in activity_data.items():
+        bg_color, border_color = colors.get(activity, ('rgba(100,100,100,0.5)', 'rgba(100,100,100,1)'))
+        datasets.append({
+            "label": activity,
+            "data": data_points,
+            "backgroundColor": bg_color,
+            "borderColor": border_color,
+            "borderWidth": 1
+        })
+    print(date_labels,datasets)
+
+    return jsonify({
+        "labels": date_labels,
+        "datasets": datasets
+    })
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required
@@ -357,6 +424,36 @@ def log_activity():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
+    
+@dashboard_bp.route('/api/sessions/record_process', methods=['POST'])
+@login_required
+def record_session_process():
+    data = request.get_json()
+    session_id = data.get('session_id')
+    actual_duration = data.get('actual_duration')
+    actual_reps = data.get('actual_reps')  
+
+    
+    session = ActivitySession.query.get(session_id)
+    if not session or session.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Invalid or unauthorized session'}), 403
+
+    try:
+        actual_duration_minutes = round(actual_duration / 60, 2) if actual_duration else None
+        new_record = ActivityRecord(
+            session_id=session_id,
+            actual_duration=actual_duration_minutes,
+            actual_reps=actual_reps,
+            timestamp=datetime.utcnow()
+        )
+
+        db.session.add(new_record)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Session record saved successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @dashboard_bp.route('/api/follow/<int:user_id>', methods=['POST'])
 @login_required
@@ -406,6 +503,32 @@ def unfollow_user(user_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
 
+from sqlalchemy.exc import SQLAlchemyError
+@dashboard_bp.route('/dashboard/api/sessions/<int:session_id>/complete', methods=['POST'])
+def complete_session(session_id):
+    data = request.get_json()
+    per_round = data.get('per_round', 0)
+
+    try:
+        session = ActivitySession.query.get(session_id)
+        if not session:
+            return jsonify({'message': 'Session not found'}), 404
+
+        if per_round > 0:
+           
+            session.duration = max(session.duration - per_round, 0)
+
+        
+        if session.duration == 0:
+            session.is_completed = True
+
+        db.session.commit()
+        return jsonify({'message': 'Session updated successfully'}), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'message': 'Database error', 'error': str(e)}), 500
+
 # Helper functions
 
 def check_goals_completion(user_id, activity_type_id):
@@ -433,12 +556,19 @@ def check_achievements(user_id):
     
     unearned_achievements = Achievement.query.filter(
         ~Achievement.id.in_(earned_ids) if earned_ids else True
+        ~Achievement.id.in_(earned_ids) if earned_ids else True
     ).all()
     
     # For each unearned achievement, check if the user meets the requirements
     for achievement in unearned_achievements:
         # First Activity Achievement
+        # First Activity Achievement
         if achievement.title == "First Activity":
+            activity_count = ActivitySession.query.filter_by(
+                user_id=user_id, 
+                is_completed=True
+            ).count()
+            
             activity_count = ActivitySession.query.filter_by(
                 user_id=user_id, 
                 is_completed=True
@@ -484,7 +614,109 @@ def check_achievements(user_id):
                 award_achievement(user_id, achievement.id)
         
         # Activity Streak Achievement (5 consecutive days)
+        # First Goal Completion Achievement
+        elif achievement.title == "Goal Crusher":
+            completed_goals = Goal.query.filter_by(
+                user_id=user_id, 
+                is_completed=True
+            ).count()
+            
+            if completed_goals >= 1:
+                award_achievement(user_id, achievement.id)
+        
+        # Training Time Achievement (1+ hour)
+        elif achievement.title == "Hour Trainer":
+            # Sum of all completed session durations
+            total_duration = db.session.query(func.sum(ActivitySession.duration))\
+                .filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True
+                ).scalar() or 0
+
+            print("Total Duration:", total_duration)
+            
+            if total_duration >= 60:  # 60 minutes = 1 hour
+                award_achievement(user_id, achievement.id)
+        
+        # Calorie Burner Achievement (1000+ calories)
+        elif achievement.title == "Calorie Burner":
+            # Sum of calories burned across all completed sessions
+            total_calories = db.session.query(func.sum(ActivitySession.calories_burned))\
+                .filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True
+                ).scalar() or 0
+            
+            if total_calories >= 1000:
+                award_achievement(user_id, achievement.id)
+        
+        # Activity Streak Achievement (5 consecutive days)
         elif achievement.title == "Activity Streak":
+            # Get all completed activity sessions ordered by date
+            completed_sessions = ActivitySession.query.filter_by(
+                user_id=user_id,
+                is_completed=True
+            ).order_by(ActivitySession.start_time).all()
+            
+            if completed_sessions:
+                # Extract dates and remove time component
+                session_dates = [session.start_time.date() for session in completed_sessions]
+                # Remove duplicates (multiple activities on same day)
+                unique_dates = sorted(set(session_dates))
+                
+                # Check for streak of 5 consecutive days
+                max_streak = 1
+                current_streak = 1
+                for i in range(1, len(unique_dates)):
+                    # If dates are consecutive
+                    if (unique_dates[i] - unique_dates[i-1]).days == 1:
+                        current_streak += 1
+                        max_streak = max(max_streak, current_streak)
+                    else:
+                        current_streak = 1
+                print("Max Streak:", max_streak)
+                if max_streak >= 5:  # 5-day streak
+                    award_achievement(user_id, achievement.id)
+        
+        # Strength Training Achievement (focused on strength exercises)
+        elif achievement.title == "Strength Enthusiast":
+            # Get IDs of strength-related activity types
+            strength_activity_ids = db.session.query(ActivityType.id)\
+                .filter(ActivityType.name.in_(['Weightlifting', 'Push-ups', 'Pull-ups', 'Squats', 'Deadlifts']))\
+                .all()
+            
+            strength_ids = [id[0] for id in strength_activity_ids]
+            
+            if strength_ids:
+                # Count strength training sessions
+                strength_sessions = ActivitySession.query.filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True,
+                    ActivitySession.activity_type_id.in_(strength_ids)
+                ).count()
+                
+                if strength_sessions >= 5:  # 5+ strength sessions
+                    award_achievement(user_id, achievement.id)
+        
+        # Cardio Master Achievement (focused on cardio exercises)
+        elif achievement.title == "Cardio Master":
+            # Get IDs of cardio-related activity types
+            cardio_activity_ids = db.session.query(ActivityType.id)\
+                .filter(ActivityType.name.in_(['Running', 'Cycling', 'Swimming', 'Jumping Rope', 'HIIT']))\
+                .all()
+            
+            cardio_ids = [id[0] for id in cardio_activity_ids]
+            
+            if cardio_ids:
+                # Count cardio sessions
+                cardio_sessions = ActivitySession.query.filter(
+                    ActivitySession.user_id == user_id,
+                    ActivitySession.is_completed == True,
+                    ActivitySession.activity_type_id.in_(cardio_ids)
+                ).count()
+                
+                if cardio_sessions >= 5:  # 5+ cardio sessions
+                    award_achievement(user_id, achievement.id)
             # Get all completed activity sessions ordered by date
             completed_sessions = ActivitySession.query.filter_by(
                 user_id=user_id,

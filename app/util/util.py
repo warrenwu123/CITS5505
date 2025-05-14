@@ -66,15 +66,19 @@ def generate_strength_plan(goal):
     rounds_per_week = total_minutes_per_week // (minutes_per_exercise * len(strength_activities))
     
     plan = []
-    for activity in strength_activities:
+    for activity_name in strength_activities:
+        activity_type = ActivityType.query.filter_by(name=activity_name).first()
+        if not activity_type:
+            continue 
+
         config = FitnessLevelConfig.query.filter_by(
-            activity_type_id=activity.id,
+            activity_type_id=activity_type.id,
             fitness_level=goal.fitness_level
         ).first()
-
         if config:
             plan.append({
-                'activity': activity.name,
+                'activity': activity_name,
+                'activity_type_id': activity_type.id,
                 'weight_ratio': config.weight_ratio,
                 'sets': config.sets,
                 'reps': config.reps,
