@@ -14,9 +14,12 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
+    
     # Removed avatar_url to maintain compatibility with existing database
     
+    
     # Relationships
+    
     password_reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy=True)
     email_verification_tokens = db.relationship('EmailVerificationToken', backref='user', lazy=True)
     mfa_tokens = db.relationship('MFAToken', backref='user', lazy=True)
@@ -80,6 +83,33 @@ class User(UserMixin, db.Model):
     
     def get_following_count(self):
         return self.following.count()
+    
+    def get_total_duration(self):
+        from app.models import ActivityRecord, ActivitySession  
+        total_minutes = (
+            db.session.query(db.func.sum(ActivityRecord.actual_duration))
+            .join(ActivitySession)
+            .filter(ActivitySession.user_id == self.id)
+            .scalar()
+        )
+        if not total_minutes:
+            return "0m"
+        hours = total_minutes // 3600
+        minutes = total_minutes % 60
+        return f"{hours}h {minutes}m" if hours else f"{minutes}m"
+
+    def get_total_calories(self):
+        from app.models import ActivityRecord, ActivitySession
+        total_calories = (
+            db.session.query(db.func.sum(ActivitySession.calories_burned))
+            .filter(
+                ActivitySession.user_id == self.id,
+                ActivitySession.is_completed == True
+            )
+            .scalar()
+        )
+        return int(total_calories) if total_calories else 0
+
     
 
 class PasswordResetToken(db.Model):

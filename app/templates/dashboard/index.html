@@ -95,6 +95,38 @@
                     </div>
                 </div>
             </div>
+            <!-- Total Duration -->
+            <div class="col-md-6 col-xl-12 mb-4">
+                <div class="card shadow h-100 py-2 border-left-dark">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-light text-uppercase mb-1">Total Duration</div>
+                                <div class="h5 mb-0 font-weight-bold">{{ current_user.get_total_duration() }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Calories -->
+        <div class="col-md-6 col-xl-12 mb-4">
+            <div class="card shadow h-100 py-2 border-left-danger">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Calories</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ current_user.get_total_calories() }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-fire fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 </div>
@@ -185,9 +217,9 @@
             <div class="card-body">
                 {% if current_user.goals|selectattr('is_completed', 'equalto', false)|list|length > 0 %}
                 {% set active_goals = current_user.goals|selectattr('is_completed', 'equalto', false)|list %}
-                {% for goal in active_goals[:3] %}
+                {% for goal in active_goals %}
                 <h4 class="small font-weight-bold">
-                    {{ goal.id }} - {{ goal.goal_type|title }}: {{ goal.target_value }}
+                    {{ goal.id }} - {{ goal.goal_type.name }}: {{ goal.target_value }}
                     <span class="float-end">{{ goal.get_progress().percentage|round|int }}%</span>
                 </h4>
                 <div class="progress mb-4">

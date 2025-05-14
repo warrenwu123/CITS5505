@@ -103,7 +103,7 @@ class ActivitySession(db.Model):
     updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
     finished_at = db.Column(db.DateTime, nullable=True)
   
-    
+    # activity_records = db.relationship('ActivityRecord', backref='session', lazy='dynamic')
     def __repr__(self):
         return f'<ActivitySession {self.id}>'
     
