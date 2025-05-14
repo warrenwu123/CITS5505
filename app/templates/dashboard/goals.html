@@ -914,6 +914,7 @@ async function completeSession() {
     const storageKey = `timeLeft-session-${sessionId}`;
     const perRoundElem = document.getElementById('roundtime');
     const perRound = parseInt(perRoundElem.textContent) || 0;
+    const perRoundSeconds = perRound * 60;
 
     console.log(totalSeconds, "totalSeconds")
     console.log(sessionId, "sessionId")
@@ -938,12 +939,13 @@ async function completeSession() {
     } else if (enduranceActivities.includes(activityName)) {
         const perRoundElem = document.getElementById('roundtime');
         const perRound = parseInt(perRoundElem.textContent) || 0;
+        const perRoundSeconds = perRound * 60;
 
         if (totalSeconds > 0) {
             await recordSessionProcess({
                 type: 'endurance',
                 sessionId: sessionId,
-                actualDuration: perRound - totalSeconds
+                actualDuration: perRoundSeconds - totalSeconds
             });
             // ⏱️ Store timeLeft in localStorage instead of updating text directly
             if (storageKey) {

@@ -322,12 +322,6 @@ def get_activity_chart_data():
         .all()
     )
 
-    duration_activities = {"Running", "Walking", "Cycling", "Swimming"}
-    reps_activities = {
-        "Barbell Squat", "Bench Press", "Deadlift",
-        "Chin-up", "Military Press", "Push-up"
-    }
-
     date_labels = [(start_date + timedelta(days=i)).strftime('%a, %b %d') for i in range(7)]
     activity_data = defaultdict(lambda: [0] * 7)
 
@@ -336,11 +330,8 @@ def get_activity_chart_data():
         timestamp_date = record.timestamp.date()
         day_index = (timestamp_date - start_date).days
 
-        if 0 <= day_index < 7:
-            if activity_name in duration_activities and record.actual_duration:
-                activity_data[activity_name][day_index] += record.actual_duration
-            elif activity_name in reps_activities and record.actual_reps:
-                activity_data[activity_name][day_index] += record.actual_reps
+        if 0 <= day_index < 7 and record.actual_duration:
+            activity_data[activity_name][day_index] += record.actual_duration
 
     colors = {
         "Running": ('rgba(78, 115, 223, 0.5)', 'rgba(78, 115, 223, 1)'),
@@ -365,6 +356,7 @@ def get_activity_chart_data():
             "borderColor": border_color,
             "borderWidth": 1
         })
+    print(date_labels,datasets)
 
     return jsonify({
         "labels": date_labels,
@@ -406,6 +398,36 @@ def log_activity():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
+    
+@dashboard_bp.route('/api/sessions/record_process', methods=['POST'])
+@login_required
+def record_session_process():
+    data = request.get_json()
+    session_id = data.get('session_id')
+    actual_duration = data.get('actual_duration')
+    actual_reps = data.get('actual_reps')  
+
+    
+    session = ActivitySession.query.get(session_id)
+    if not session or session.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Invalid or unauthorized session'}), 403
+
+    try:
+        actual_duration_minutes = round(actual_duration / 60, 2) if actual_duration else None
+        new_record = ActivityRecord(
+            session_id=session_id,
+            actual_duration=actual_duration_minutes,
+            actual_reps=actual_reps,
+            timestamp=datetime.utcnow()
+        )
+
+        db.session.add(new_record)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Session record saved successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @dashboard_bp.route('/api/follow/<int:user_id>', methods=['POST'])
 @login_required
@@ -467,10 +489,10 @@ def complete_session(session_id):
             return jsonify({'message': 'Session not found'}), 404
 
         if per_round > 0:
-            # 减少 duration，防止负值
+           
             session.duration = max(session.duration - per_round, 0)
 
-        # 如果 duration 减为 0，标记为完成
+        
         if session.duration == 0:
             session.is_completed = True
 
@@ -645,6 +667,7 @@ def award_achievement(user_id, achievement_id):
     
     db.session.add(user_achievement)
     db.session.commit()
+
 
 
 def check_goal_progress(goal_id):
