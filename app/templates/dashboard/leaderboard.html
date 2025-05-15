@@ -275,57 +275,67 @@
     function setupFollowButtons() {
         // Follow buttons
         document.querySelectorAll('.follow-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-user-id');
-                try {
-                    const response = await fetch(`/dashboard/api/follow/${userId}`, {
-                        method: 'POST'
-                    });
-                    
-                    if (response.ok) {
-                        // Change button to unfollow
-                        this.innerHTML = '<i class="fas fa-user-minus"></i> Unfollow';
-                        this.classList.remove('btn-outline-primary');
-                        this.classList.add('btn-outline-danger');
-                        this.classList.remove('follow-btn');
-                        this.classList.add('unfollow-btn');
-                    } else {
-                        const error = await response.json();
-                        alert(`Error following user: ${error.error}`);
-                    }
-                } catch (error) {
-                    console.error('Error following user:', error);
-                    alert('Error following user. Please try again.');
-                }
-            });
+            button.addEventListener('click', handleFollowClick);
         });
         
         // Unfollow buttons
         document.querySelectorAll('.unfollow-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-user-id');
-                try {
-                    const response = await fetch(`/dashboard/api/unfollow/${userId}`, {
-                        method: 'POST'
-                    });
-                    
-                    if (response.ok) {
-                        // Change button to follow
-                        this.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
-                        this.classList.remove('btn-outline-danger');
-                        this.classList.add('btn-outline-primary');
-                        this.classList.remove('unfollow-btn');
-                        this.classList.add('follow-btn');
-                    } else {
-                        const error = await response.json();
-                        alert(`Error unfollowing user: ${error.error}`);
-                    }
-                } catch (error) {
-                    console.error('Error unfollowing user:', error);
-                    alert('Error unfollowing user. Please try again.');
-                }
-            });
+            button.addEventListener('click', handleUnfollowClick);
         });
+    }
+    async function handleFollowClick() {
+        const userId = this.getAttribute('data-user-id');
+        try {
+            const response = await fetch(`/dashboard/api/follow/${userId}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Change button to unfollow
+                this.innerHTML = '<i class="fas fa-user-minus"></i> Unfollow';
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-outline-danger');
+                this.classList.remove('follow-btn');
+                this.classList.add('unfollow-btn');
+                
+                // Remove old event listener and add new one
+                this.removeEventListener('click', handleFollowClick);
+                this.addEventListener('click', handleUnfollowClick);
+            } else {
+                const error = await response.json();
+                alert(`Error following user: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error following user:', error);
+            alert('Error following user. Please try again.');
+        }
+    }
+    // Unfollow button click handler
+    async function handleUnfollowClick() {
+        const userId = this.getAttribute('data-user-id');
+        try {
+            const response = await fetch(`/dashboard/api/unfollow/${userId}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Change button to follow
+                this.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+                this.classList.remove('btn-outline-danger');
+                this.classList.add('btn-outline-primary');
+                this.classList.remove('unfollow-btn');
+                this.classList.add('follow-btn');
+                // Remove old event listener and add new one
+                this.removeEventListener('click', handleUnfollowClick);
+                this.addEventListener('click', handleFollowClick);
+            } else {
+                const error = await response.json();
+                alert(`Error unfollowing user: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error unfollowing user:', error);
+            alert('Error unfollowing user. Please try again.');
+        }
     }
     
     function setupActivityDistributionChart() {
