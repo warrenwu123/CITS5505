@@ -82,7 +82,20 @@ class Goal(db.Model):
 
             percentage = (completed / total) * 100
             return {"percentage": percentage}
-
+        def to_dict(self):
+            return {
+                'id': self.id,
+                'user_id': self.user_id,
+                'fitness_level': self.fitness_level,
+                'goal_type_id': self.goal_type_id,
+                'target_value': self.target_value,
+                'available_time_per_week': self.available_time_per_week,
+                'start_date': self.start_date.isoformat() if self.start_date else None,
+                'end_date': self.end_date.isoformat() if self.end_date else None,
+                'is_completed': self.is_completed,
+                'created_at': self.created_at.isoformat() if self.created_at else None,
+                'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            }
 
     
 class ActivitySession(db.Model):

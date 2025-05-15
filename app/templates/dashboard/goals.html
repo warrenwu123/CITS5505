@@ -108,12 +108,20 @@
                                     {% set strength_activities = ['Barbell Squat', 'Bench Press', 'Deadlift', 'Chin-up', 'Military Press', 'Push-up'] %}
                                 
                                     {% if session.activity_type.name in endurance_activities %}
-                                        {% set per_round = 30 %}
+                                        {% set base_round = 30 %}
                                     {% elif session.activity_type.name in strength_activities %}
-                                        {% set per_round = 10 %}
+                                        {% set base_round = 10 %}
                                     {% else %}
-                                        {% set per_round = 1 %}
+                                        {% set base_round = 1 %}
                                     {% endif %}
+
+                                    
+                                    {% if session.duration < base_round %}
+                                        {% set per_round = session.duration %}
+                                    {% else %}
+                                        {% set per_round = base_round %}
+                                    {% endif %}
+                                    
                                 
                                     {% set rounds = (session.duration // per_round) if per_round > 0 else 0 %}
                                 
@@ -739,11 +747,11 @@ async function createGoal() {
             const result = await response.json();
             alert('Goal created successfully!');
 
-            // 隐藏模态框
+            
             const createGoalModal = bootstrap.Modal.getInstance(document.getElementById('createGoalModal'));
             createGoalModal.hide();
 
-            // 刷新页面或更新前端数据
+            
             location.reload();
         } else {
             const error = await response.json();

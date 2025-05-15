@@ -29,6 +29,7 @@ def goals():
     """User goals section of the dashboard"""
     # Get user's goals
     user_goals = Goal.query.filter_by(user_id=current_user.id).all()
+    print([goal.to_dict() for goal in user_goals])
     # Get all activity types for goal creation
     activity_types = ActivityType.query.all()
     print([atype.to_dict() for atype in activity_types])
@@ -64,6 +65,8 @@ def achievements():
     
     earned_ids = [ua.achievement_id for ua in user_achievements]
     unearned_achievements = [a for a in all_achievements if a.id not in earned_ids]
+
+    check_achievements(current_user.id)
     
     return render_template('dashboard/achievements.html', 
                            user_achievements=user_achievements,
@@ -170,19 +173,21 @@ def create_goal():
         goal_type_obj = GoalType.query.filter_by(name=goal_type).first()
         if not goal_type_obj:
             return jsonify({'success': False, 'message': 'Invalid goal type'}), 400
-        
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=7)
+
         goal = Goal(
             user_id=current_user.id,
             goal_type_id=goal_type_obj.id,
             target_value=data.get('target_value'),
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
-            start_date=func.now(),
-            end_date = datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
-            end_date = datetime.datetime.strptime(data.get('end_date'), '%Y-%m-%d').date(),
+            start_date=start_date,
+            end_date = end_date,
             is_completed=False
         )
-        
+        db.session.add(goal)
+        db.session.commit()
 
         if goal_type == 'weightloss':
             plan = generate_weightloss_plan(goal)   
@@ -229,8 +234,7 @@ def create_goal():
                 )
                 sessions.append(session)
         
-        db.session.add(goal)
-        db.session.commit()
+        
         db.session.add_all(sessions)
         db.session.commit()
 
@@ -554,10 +558,10 @@ def check_achievements(user_id):
     
     earned_ids = [id[0] for id in earned_achievement_ids]
     
-    unearned_achievements = Achievement.query.filter(
-        ~Achievement.id.in_(earned_ids) if earned_ids else True
-        ~Achievement.id.in_(earned_ids) if earned_ids else True
-    ).all()
+    if earned_ids:
+        unearned_achievements = Achievement.query.filter(~Achievement.id.in_(earned_ids)).all()
+    else:
+        unearned_achievements = Achievement.query.all()
     
     # For each unearned achievement, check if the user meets the requirements
     for achievement in unearned_achievements:
@@ -803,62 +807,6 @@ def award_achievement(user_id, achievement_id):
     db.session.add(user_achievement)
     db.session.commit()
 
-@dashboard_bp.route('/api/sessions/<int:session_id>/complete', methods=['POST'])
-@login_required
-def complete_session(session_id):
-    """API endpoint to mark an activity session as completed"""
-    data = request.json
-    remaining_seconds = data.get('remaining_seconds', 0)
-    
-    # Find the session
-    session = ActivitySession.query.get(session_id)
-    
-    if not session:
-        return jsonify({'success': False, 'message': 'Session not found'}), 404
-    
-    # Check if this is the user's session
-    if session.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
-    try:
-        # Mark session as completed
-        session.is_completed = True
-        
-        # Set end time to now if not already set
-        if not session.end_time:
-            session.end_time = func.now()
-        
-        # Update duration based on remaining seconds if tracking time
-        if session.duration and remaining_seconds > 0:
-            # Convert remaining_seconds to minutes (since duration is stored in minutes)
-            remaining_minutes = remaining_seconds / 60
-            # Adjust duration if there's remaining time
-            session.duration = session.duration - remaining_minutes
-        
-        # Calculate calories burned if not already set
-        if not session.calories_burned and session.duration and session.activity_type:
-            calories_per_hour = session.activity_type.calories_per_hour or 0
-            if calories_per_hour > 0:
-                # Convert duration from minutes to hours and multiply by calories_per_hour
-                hours = session.duration / 60
-                session.calories_burned = hours * calories_per_hour
-        
-        db.session.commit()
-        
-        # Check if this completes any goals
-        check_goal_progress(session.goal_id)
-        
-        # Check if user earned any achievements
-        check_achievements(current_user.id)
-        
-        return jsonify({
-            'success': True, 
-            'message': 'Session completed successfully',
-            'session': session.to_dict()
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 def check_goal_progress(goal_id):
     """Check if a goal is completed based on its associated sessions"""

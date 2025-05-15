@@ -4,6 +4,7 @@ from app import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from werkzeug.security import generate_password_hash, check_password_hash
+from .activity import ActivitySession, ActivityRecord
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
