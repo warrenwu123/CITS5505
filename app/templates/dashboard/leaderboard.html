@@ -278,7 +278,7 @@
             button.addEventListener('click', async function() {
                 const userId = this.getAttribute('data-user-id');
                 try {
-                    const response = await fetch(`/api/follow/${userId}`, {
+                    const response = await fetch(`/dashboard/api/follow/${userId}`, {
                         method: 'POST'
                     });
                     
@@ -305,7 +305,7 @@
             button.addEventListener('click', async function() {
                 const userId = this.getAttribute('data-user-id');
                 try {
-                    const response = await fetch(`/api/unfollow/${userId}`, {
+                    const response = await fetch(`/dashboard/api/unfollow/${userId}`, {
                         method: 'POST'
                     });
                     
