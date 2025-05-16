@@ -283,11 +283,20 @@
             button.addEventListener('click', handleUnfollowClick);
         });
     }
+    window.getCSRFToken = function() {
+        const token = document.querySelector('meta[name="csrf-token"]');
+        return token ? token.getAttribute('content') : '';
+    };
     async function handleFollowClick() {
         const userId = this.getAttribute('data-user-id');
         try {
+            const token = window.getCSRFToken();
             const response = await fetch(`/dashboard/api/follow/${userId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': token
+                }
             });
             
             if (response.ok) {
@@ -314,8 +323,13 @@
     async function handleUnfollowClick() {
         const userId = this.getAttribute('data-user-id');
         try {
+            const token = window.getCSRFToken();
             const response = await fetch(`/dashboard/api/unfollow/${userId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': token
+                }
             });
             
             if (response.ok) {
