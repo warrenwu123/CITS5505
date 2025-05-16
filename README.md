@@ -6,7 +6,7 @@ A fitness tracking web application developed for CITS5505, focusing on personal 
   <img src="https://raw.githubusercontent.com/username/CITS5505/master/static/images/logo.png" alt="FitTrack Logo" width="250" height="auto">
 </p>
 
-## contributor
+## Contributors
 
 | Name<sup>1</sup>       | Student Number<sup>1</sup> |
 |------------------------|---------------------------|
@@ -149,17 +149,21 @@ pytest tests/test_auth.py
 ```
 ## 📁 Project Structure
 CITS5505/
-├── app.py              # Main application file
-├── models.py           # Database models
-├── routes/             # Blueprint routes for different features
-│   ├── auth.py         # Authentication routes
-│   ├── goals.py        # Goal setting and tracking routes
-│   ├── dashboard.py    # Dashboard visualization routes
-│   └── social.py       # Leaderboard and sharing routes
-├── templates/          # HTML templates
-├── static/             # Static assets (CSS, JS, images)
-├── tests/              # Unit tests
-└── utils/              # Helper functions and utilities
+├── app            # Main application folder
+  ├── main.py              # Main application file
+  ├── models.py           # Database models
+  ├── routes/             # Blueprint routes for different features
+  │   ├── auth.py         # Authentication routes
+  │   ├── dashboard.py    # Dashboard visualization routes
+  ├── templates/          # HTML templates
+  ├── static/             # Static assets (CSS, JS, images)
+  ├── tests/              # Unit tests
+  └── utils/              # Helper functions and utilities
+├── config.py              # configration file
+├── main.py               # the main entrance
+├── seed_data.py          # initialized data for tables
+
+
 ## 👥 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📄 License
