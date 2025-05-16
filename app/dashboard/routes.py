@@ -508,7 +508,7 @@ def unfollow_user(user_id):
         return jsonify({'success': False, 'message': str(e)}), 400
 
 from sqlalchemy.exc import SQLAlchemyError
-@dashboard_bp.route('/dashboard/api/sessions/<int:session_id>/complete', methods=['POST'])
+@dashboard_bp.route('/api/sessions/<int:session_id>/complete', methods=['POST'])
 def complete_session(session_id):
     data = request.get_json()
     per_round = data.get('per_round', 0)
