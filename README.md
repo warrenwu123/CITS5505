@@ -143,7 +143,22 @@ bash
 pytest tests/test_auth.py
 ```
 ## 📁 Project Structure
-<pre lang="markdown"> ``` CITS5505/ ├── app/ # Main application folder │ ├── main.py # Main application file │ ├── models.py # Database models │ ├── routes/ # Blueprint routes for different features │ │ ├── auth.py # Authentication routes │ │ ├── dashboard.py # Dashboard visualization routes │ ├── templates/ # HTML templates │ ├── static/ # Static assets (CSS, JS, images) │ ├── tests/ # Unit tests │ └── utils/ # Helper functions and utilities ├── config.py # Configuration file ├── main.py # The main entry point ├── seed_data.py # Initial data for tables ``` </pre>
+```
+CITS5505/
+├── app/                   # Main application folder
+│   ├── main.py            # Main application file
+│   ├── models.py          # Database models
+│   ├── routes/            # Blueprint routes for different features
+│   │   ├── auth.py        # Authentication routes
+│   │   ├── dashboard.py   # Dashboard visualization routes
+│   ├── templates/         # HTML templates
+│   ├── static/            # Static assets (CSS, JS, images)
+│   ├── tests/             # Unit tests
+│   └── utils/             # Helper functions and utilities
+├── config.py              # Configuration file
+├── main.py                # The main entry point
+├── seed_data.py           # Initial data for tables
+```
 
 
 ## 👥 Contributing
