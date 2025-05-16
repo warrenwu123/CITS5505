@@ -33,15 +33,15 @@ def runner(app):
 def auth_client(client):
     """A test client with an authenticated user."""
     # Create a test user
-    user = User(email='test@example.com')
-    user.set_password('password123')
+    user = User(email='Warren_Wu1@hotmail.com')
+    user.set_password('QEWyop?=!,58458')
     db.session.add(user)
     db.session.commit()
     
     # Log in the user
-    client.post('/auth/sign_in', data={
-        'email': 'test@example.com',
-        'password': 'password123',
+    client.post('/auth/sign-in', data={
+        'email': 'Warren_Wu1@hotmail.com',
+        'password': 'QEWyop?=!,58458',
         'remember_me': False
     })
     
