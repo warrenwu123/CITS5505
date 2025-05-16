@@ -86,7 +86,7 @@ def create_app(config_name=None):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.sign_in'))
         
-        return redirect(url_for('dashboard.home'))
+        return redirect(url_for('dashboard.profile'))
     
     @app.route('/tutorials')
     def tutorials():
