@@ -8,7 +8,12 @@ A fitness tracking web application developed for CITS5505, focusing on personal 
 
 ## contributor
 
-![image](https://github.com/user-attachments/assets/5eae50ab-b659-4a81-86cb-c342d03b570c)
+| Name<sup>1</sup>       | Student Number<sup>1</sup> |
+|------------------------|---------------------------|
+| Zihan Wu<sup>1</sup>    | 24372276<sup>1</sup>      |
+| Jiajun Yang<sup>1</sup>  | 24242577<sup>1</sup>      |
+| Yosuke Inoue<sup>1</sup> | 24513446<sup>1</sup>      |
+| Young Wei<sup>1</sup>    | 23857911<sup>1</sup>      |
 
 ## 📋 Table of Contents
 - [Overview](#-overview)
@@ -76,7 +81,7 @@ FitTrack is a Flask-based web application that empowers users to set fitness goa
 ```bash
 git clone https://github.com/warrenwu123/CITS5505.git
 cd CITS5505
-
+```
 ### Step 2: Create a Virtual Environment
 For Windows:
 ```
@@ -105,7 +110,7 @@ bash
 pip install -r requirements.txt
 ```
 ## 🚀 Usage
-Running the Application
+### Running the Application
 
 Ensure your virtual environment is activated
 Start the application:
@@ -116,7 +121,7 @@ flask run
 ```
 Open your browser and navigate to http://127.0.0.1:5000/
 
-### First Steps
+### features
 
 Create a new account or login with existing credentials
 Set up your first fitness goal on the dashboard
