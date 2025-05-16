@@ -1,4 +1,5 @@
 import os
+basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     """Application configuration class"""
     
@@ -25,3 +26,10 @@ class Config:
     # App config
     APP_NAME = 'Flask Auth'
     APP_URL = os.environ.get('APP_URL', 'http://localhost:5000')
+
+class DeploymentConfig(Config):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(basedir, 'test.db')
+
+class TestConfig(Config):
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    TESTING = True

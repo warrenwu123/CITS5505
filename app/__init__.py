@@ -50,7 +50,6 @@ def create_app(config_name=None):
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
-    csrf.init_app(app)
     migrate = Migrate(app, db)
     
     # Configure login manager
@@ -86,8 +85,8 @@ def create_app(config_name=None):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.sign_in'))
         
-        return redirect(url_for('dashboard.home'))
-    
+        return render_template('home.html')
+
     @app.route('/tutorials')
     def tutorials():
         from flask import render_template, redirect, url_for
@@ -97,9 +96,9 @@ def create_app(config_name=None):
             return redirect(url_for('auth.sign_in'))
         
         return render_template('tutorials.html')
-    
+
     from app.models.user import ShareUser
-    
+
     @app.context_processor
     def inject_shareuser():
         return dict(ShareUser=ShareUser)

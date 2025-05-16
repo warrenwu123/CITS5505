@@ -243,7 +243,7 @@
 <div class="row">
     <div class="col-12 mb-4">
         <div class="card shadow">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header py-3 d-flex bg-dark justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Recent Achievements</h6>
                 <div>
                     <a href="{{ url_for('dashboard.achievements') }}" class="btn btn-sm btn-outline-primary">
@@ -257,7 +257,7 @@
                     {% set recent_achievements = current_user.user_achievements|sort(attribute='earned_at', reverse=true)|list %}
                     {% for user_achievement in recent_achievements[:3] %}
                     <div class="col-md-3 col-sm-6 mb-4">
-                        <div class="card bg-light">
+                        <div class="card bg-dark">
                             <div class="card-body text-center">
                                 <div class="achievement-icon mb-3">
                                     <i class="fas {{ user_achievement.achievement.icon }} fa-2x"></i>
