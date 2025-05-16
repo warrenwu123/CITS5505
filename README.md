@@ -3,7 +3,7 @@
 A fitness tracking web application developed for CITS5505, focusing on personal goal setting, progress tracking, and social fitness engagement.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/username/CITS5505/master/static/images/logo.png" alt="FitTrack Logo" width="250" height="auto">
+   <i class="fas fa-heartbeat"></i> FitTrack
 </p>
 
 ## Contributors
@@ -135,12 +135,7 @@ Ensure your virtual environment is activated
 Run the test suite:
 ```
 bash
-pytest
-```
-For more detailed test output, including coverage information:
-```
-bash
-pytest --cov=app
+PYTHONPATH=. pytest
 ```
 To run specific test files:
 ```
@@ -148,20 +143,7 @@ bash
 pytest tests/test_auth.py
 ```
 ## 📁 Project Structure
-CITS5505/
-├── app            # Main application folder
-  ├── main.py              # Main application file
-  ├── models.py           # Database models
-  ├── routes/             # Blueprint routes for different features
-  │   ├── auth.py         # Authentication routes
-  │   ├── dashboard.py    # Dashboard visualization routes
-  ├── templates/          # HTML templates
-  ├── static/             # Static assets (CSS, JS, images)
-  ├── tests/              # Unit tests
-  └── utils/              # Helper functions and utilities
-├── config.py              # configration file
-├── main.py               # the main entrance
-├── seed_data.py          # initialized data for tables
+<pre lang="markdown"> ``` CITS5505/ ├── app/ # Main application folder │ ├── main.py # Main application file │ ├── models.py # Database models │ ├── routes/ # Blueprint routes for different features │ │ ├── auth.py # Authentication routes │ │ ├── dashboard.py # Dashboard visualization routes │ ├── templates/ # HTML templates │ ├── static/ # Static assets (CSS, JS, images) │ ├── tests/ # Unit tests │ └── utils/ # Helper functions and utilities ├── config.py # Configuration file ├── main.py # The main entry point ├── seed_data.py # Initial data for tables ``` </pre>
 
 
 ## 👥 Contributing
