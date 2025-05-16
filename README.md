@@ -8,12 +8,12 @@ A fitness tracking web application developed for CITS5505, focusing on personal 
 
 ## Contributors
 
-| Name<sup>1</sup>       | Student Number<sup>1</sup> |
-|------------------------|---------------------------|
-| Zihan Wu<sup>1</sup>    | 24372276<sup>1</sup>      |
-| Jiajun Yang<sup>1</sup>  | 24242577<sup>1</sup>      |
-| Yosuke Inoue<sup>1</sup> | 24513446<sup>1</sup>      |
-| Young Wei<sup>1</sup>    | 23857911<sup>1</sup>      |
+| Name<sup>1</sup>       | Student Number<sup>2</sup> | GitHub Name<sup>3</sup>       |
+|------------------------|----------------------------|-------------------------------|
+| Zihan Wu<sup>4</sup>    | 24372276<sup>5</sup>       | Warrenwu123<sup>6</sup>       |
+| Jiajun Yang<sup>7</sup>  | 24242577<sup>8</sup>       | Atalantayang; 杨佳君<sup>9</sup> |
+| Yosuke Inoue<sup>9</sup> | 24513446<sup>9</sup>       | yosuke0905<sup>9</sup>        |
+| Young Wei<sup>9</sup>    | 23857911<sup>9</sup>       | SayHiToYoung<sup>9</sup>      |
 
 ## 📋 Table of Contents
 - [Overview](#-overview)
