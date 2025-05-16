@@ -621,7 +621,8 @@ function setupDeleteGoalButtons() {
                 const response = await fetch(`/dashboard/api/goals/delete/${goal_id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
                     }
                 });
                 console.log(response, "response")
@@ -770,7 +771,8 @@ async function deleteGoal() {
         
         try {
             const response = await fetch(`/dashboard/api/sessions/${deleteSessionId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             });
             
             if (response.ok) {
@@ -971,7 +973,8 @@ async function recordSessionProcess({ type, sessionId, actualDuration, actualRep
         const response = await fetch('/dashboard/api/sessions/record_process', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify(payload)
         });
@@ -992,7 +995,8 @@ async function finishSessionAPI(sessionId, perRound) {
         const response = await fetch(`/dashboard/api/sessions/${sessionId}/complete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({ per_round: perRound })
         });
