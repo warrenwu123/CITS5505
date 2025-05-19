@@ -4,6 +4,7 @@ from app import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from werkzeug.security import generate_password_hash, check_password_hash
+from .activity import ActivitySession, ActivityRecord
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,9 +15,15 @@ class User(UserMixin, db.Model):
     is_email_verified = db.Column(db.Boolean, default=False)
     has_mfa = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
+    total_duration = db.Column(db.Float, default=0.0)
+    name = db.Column(db.String(100), nullable=True)  # 用户名字
+    bio = db.Column(db.Text, nullable=True)  # 用户自我介绍
+    
     # Removed avatar_url to maintain compatibility with existing database
     
+    
     # Relationships
+    
     password_reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy=True)
     email_verification_tokens = db.relationship('EmailVerificationToken', backref='user', lazy=True)
     mfa_tokens = db.relationship('MFAToken', backref='user', lazy=True)
@@ -31,6 +38,17 @@ class User(UserMixin, db.Model):
     following = db.relationship('Follow',
                                foreign_keys='Follow.follower_id',
                                backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade="all, delete-orphan")
+    # 添加分享权限关系
+    shared_with = db.relationship('ShareUser',
+                                 foreign_keys='ShareUser.user_id',
+                                 backref=db.backref('user', lazy='joined'),
+                                 lazy='dynamic',
+                                 cascade="all, delete-orphan")
+    shared_by = db.relationship('ShareUser',
+                               foreign_keys='ShareUser.shared_user_id',
+                               backref=db.backref('shared_user', lazy='joined'),
                                lazy='dynamic',
                                cascade="all, delete-orphan")
     
@@ -80,6 +98,43 @@ class User(UserMixin, db.Model):
     
     def get_following_count(self):
         return self.following.count()
+    
+    @property
+    def total_duration(self):
+        """Calculate total training duration in minutes for all completed activity sessions"""
+        total = db.session.query(func.sum(ActivitySession.duration))\
+            .filter(ActivitySession.user_id == self.id,
+                   ActivitySession.is_completed == True,
+                   ActivitySession.duration.isnot(None))\
+            .scalar()
+        return total or 0  # Return 0 if no sessions or all durations are None
+
+    def get_total_duration(self):
+        from app.models import ActivityRecord, ActivitySession  
+        total_minutes = (
+            db.session.query(db.func.sum(ActivityRecord.actual_duration))
+            .join(ActivitySession)
+            .filter(ActivitySession.user_id == self.id)
+            .scalar()
+        )
+        if not total_minutes:
+            return "0m"
+        hours = total_minutes // 3600
+        minutes = total_minutes % 60
+        return f"{hours}h {minutes}m" if hours else f"{minutes}m"
+
+    def get_total_calories(self):
+        from app.models import ActivityRecord, ActivitySession
+        total_calories = (
+            db.session.query(db.func.sum(ActivitySession.calories_burned))
+            .filter(
+                ActivitySession.user_id == self.id,
+                ActivitySession.is_completed == True
+            )
+            .scalar()
+        )
+        return int(total_calories) if total_calories else 0
+
     
 
 class PasswordResetToken(db.Model):
@@ -132,3 +187,25 @@ class Follow(db.Model):
     
     def __repr__(self):
         return f'<Follow {self.follower_id} -> {self.followed_id}>'
+
+
+class ShareUser(db.Model):
+    """记录用户分享权限的表"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # 被分享的用户
+    shared_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # 获得分享权限的用户
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    
+    def __repr__(self):
+        return f'<ShareUser {self.user_id} -> {self.shared_user_id}>'
+    
+    @staticmethod
+    def can_view_profile(user_id, viewer_id):
+        """检查viewer_id是否有权限查看user_id的信息"""
+        if user_id == viewer_id:  # 用户总是可以查看自己的信息
+            return True
+        return ShareUser.query.filter_by(
+            user_id=user_id,
+            shared_user_id=viewer_id
+        ).first() is not None

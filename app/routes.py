@@ -4,8 +4,7 @@ from sqlalchemy import func, or_
 from sqlalchemy import text
 
 from app import db
-from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType,ActivityRecord
-from app.models.user import ShareUser
+from app.models import User, Goal, ActivityType, ActivitySession, Achievement, UserAchievement, Follow, GoalType, ShareUser
 from app.dashboard import dashboard_bp
 from app.util import generate_weightloss_plan,generate_strength_plan, generate_weightgain_plan, generate_endurance_plan
 
@@ -29,7 +28,6 @@ def goals():
     """User goals section of the dashboard"""
     # Get user's goals
     user_goals = Goal.query.filter_by(user_id=current_user.id).all()
-    print([goal.to_dict() for goal in user_goals])
     # Get all activity types for goal creation
     activity_types = ActivityType.query.all()
     print([atype.to_dict() for atype in activity_types])
@@ -65,8 +63,6 @@ def achievements():
     
     earned_ids = [ua.achievement_id for ua in user_achievements]
     unearned_achievements = [a for a in all_achievements if a.id not in earned_ids]
-
-    check_achievements(current_user.id)
     
     return render_template('dashboard/achievements.html', 
                            user_achievements=user_achievements,
@@ -77,14 +73,10 @@ def achievements():
 @login_required
 def leaderboard():
     """Leaderboard section of the dashboard"""
-    # Get top users by activity count, and their total training duration
-    top_users_by_activity = db.session.query(
-        User,
-        func.count(ActivitySession.id).label('activity_count'),
-        func.coalesce(func.sum(ActivitySession.duration), 0).label('total_duration')
-    ).join(ActivitySession, User.id == ActivitySession.user_id)\
-     .group_by(User.id)\
-     .order_by(func.count(ActivitySession.id).desc())\
+    # Get top users by total duration
+    top_users_by_duration = db.session.query(
+        User, User.total_duration.label('total_duration')
+    ).order_by(User.total_duration.desc())\
      .limit(10).all()
     
     # Get top users by achievement count
@@ -95,31 +87,18 @@ def leaderboard():
      .order_by(func.count(UserAchievement.id).desc())\
      .limit(10).all()
     
-    # Get achievement leaders with their latest achievement
-    achievement_leaders = db.session.query(
-        User,
-        func.count(UserAchievement.id).label('achievement_count'),
-        func.max(UserAchievement.earned_at).label('latest_achievement_date')
-    ).join(UserAchievement, User.id == UserAchievement.user_id)\
+    # Get top users by follower count
+    top_users_by_followers = db.session.query(
+        User, func.count(Follow.id).label('follower_count')
+    ).join(Follow, User.id == Follow.followed_id)\
      .group_by(User.id)\
-     .order_by(func.count(UserAchievement.id).desc())\
+     .order_by(func.count(Follow.id).desc())\
      .limit(10).all()
     
-    # Get latest achievement for each user
-    latest_achievements = {}
-    for user, count, latest_date in achievement_leaders:
-        latest_achievement = db.session.query(Achievement)\
-            .join(UserAchievement, Achievement.id == UserAchievement.achievement_id)\
-            .filter(UserAchievement.user_id == user.id,
-                   UserAchievement.earned_at == latest_date)\
-            .first()
-        latest_achievements[user.id] = latest_achievement
-    
     return render_template('dashboard/leaderboard.html',
-                         top_users_by_activity=top_users_by_activity,
-                         top_users_by_achievements=top_users_by_achievements,
-                         achievement_leaders=achievement_leaders,
-                         latest_achievements=latest_achievements)
+                           active_users=top_users_by_duration,
+                           top_users_by_achievements=top_users_by_achievements,
+                           popular_users=top_users_by_followers)
 
 @dashboard_bp.route('/explore')
 @login_required
@@ -173,22 +152,22 @@ def create_goal():
         goal_type_obj = GoalType.query.filter_by(name=goal_type).first()
         if not goal_type_obj:
             return jsonify({'success': False, 'message': 'Invalid goal type'}), 400
-        start_date = datetime.now()
-        end_date = start_date + timedelta(days=7)
-
+        
         goal = Goal(
             user_id=current_user.id,
             goal_type_id=goal_type_obj.id,
             target_value=data.get('target_value'),
             fitness_level=data.get('fitness_level'),
             available_time_per_week = data.get('available_time_per_week'),
-            start_date=start_date,
-            end_date = end_date,
+            start_date=func.now(),
+            end_date=data.get('end_date'),
             is_completed=False
         )
+        
         db.session.add(goal)
         db.session.commit()
-
+       
+        
         if goal_type == 'weightloss':
             plan = generate_weightloss_plan(goal)   
         elif goal_type == 'strength':
@@ -200,7 +179,7 @@ def create_goal():
         else:
             return jsonify({'error': 'Unsupported goal type'}), 400
         sessions = []
-        
+        today = datetime.date.today()
         if goal_type == 'strength' or goal_type == 'weightgain':
             
             for p in plan['strength_training'] if goal_type == 'weightgain' else plan:
@@ -209,10 +188,9 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.now(),
+                    start_time=datetime.datetime.combine(today, datetime.time(9, 0)),  
                     duration=10 * p['rounds_per_week'],
                     reps=p.get('reps'),
-                    sets=p.get('sets'),
                     calories_burned=None,
                     notes=None,
                     is_completed=False
@@ -226,15 +204,14 @@ def create_goal():
                     activity_type_id=p.get('activity_type_id') if p.get('activity_type_id') else ActivityType.query.filter_by(name=p['activity']).first().id,
                     goal_id=goal.id,
                     goal_type_id=goal.goal_type_id,
-                    start_time=datetime.now(),
+                    start_time=datetime.datetime.combine(today, datetime.time(7, 0)), 
                     duration=p.get('target_minutes_per_week'),
                     calories_burned=p.get('expected_calories_burned_per_week'),
                     notes=None,
                     is_completed=False,
                 )
                 sessions.append(session)
-        
-        
+
         db.session.add_all(sessions)
         db.session.commit()
 
@@ -300,98 +277,32 @@ def delete_activity_session(session_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@dashboard_bp.route('/api/goals/delete/<int:goal_id>', methods=['DELETE'])
-def delete_all_goals(goal_id):
-    if not goal_id:
-        return jsonify({"error": "Goal ID is required."}), 400
+@dashboard_bp.route('/api/goals/delete_all', methods=['DELETE'])
+def delete_all_goals():
     try:
-        Goal.query.filter_by(user_id=current_user.id,id=goal_id).delete()
+        Goal.query.filter_by(user_id=current_user.id).delete()
         db.session.commit()
-        
+
+        # Reset SQLite auto-increment counter
+
         return jsonify({"message": "All goals deleted and ID reset."}), 200
     except Exception as e:
         db.session.rollback()
-        print("Error:", str(e))
         return jsonify({"error": str(e)}), 500
     
 @dashboard_bp.route('/api/session_distribution', methods=['GET'])
 @login_required
 def session_distribution():
-
-    goal_id = request.args.get('goal_id', type=int)
-    
-    if goal_id is None:
-        return jsonify({'error': 'Missing goal_id parameter'}), 400
-    
     results = (
         db.session.query(ActivityType.name, func.count(ActivitySession.id))
         .join(ActivitySession, ActivitySession.activity_type_id == ActivityType.id)
         .filter(ActivitySession.user_id == current_user.id)
-        .filter(ActivitySession.goal_id == goal_id)
         .group_by(ActivityType.name)
         .all()
     )
     labels = [r[0] for r in results]
     data = [r[1] for r in results]
     return jsonify({'labels': labels, 'data': data})
-
-from datetime import datetime, timedelta
-from collections import defaultdict
-@dashboard_bp.route('/api/activity_chart_data', methods=['GET'])
-@login_required
-def get_activity_chart_data():
-    today = datetime.today().date()
-    start_date = today - timedelta(days=6)
-
-    records = (
-        db.session.query(ActivityRecord, ActivitySession, ActivityType)
-        .join(ActivitySession, ActivityRecord.session_id == ActivitySession.id)
-        .join(ActivityType, ActivitySession.activity_type_id == ActivityType.id)
-        .filter(ActivitySession.user_id == current_user.id)
-        .filter(ActivityRecord.timestamp >= start_date)
-        .all()
-    )
-
-    date_labels = [(start_date + timedelta(days=i)).strftime('%a, %b %d') for i in range(7)]
-    activity_data = defaultdict(lambda: [0] * 7)
-
-    for record, session, activity_type in records:
-        activity_name = activity_type.name
-        timestamp_date = record.timestamp.date()
-        day_index = (timestamp_date - start_date).days
-
-        if 0 <= day_index < 7 and record.actual_duration:
-            activity_data[activity_name][day_index] += record.actual_duration
-
-    colors = {
-        "Running": ('rgba(78, 115, 223, 0.5)', 'rgba(78, 115, 223, 1)'),
-        "Cycling": ('rgba(28, 200, 138, 0.5)', 'rgba(28, 200, 138, 1)'),
-        "Walking": ('rgba(133, 135, 150, 0.5)', 'rgba(133, 135, 150, 1)'),
-        "Swimming": ('rgba(231, 74, 59, 0.5)', 'rgba(231, 74, 59, 1)'),
-        "Barbell Squat": ('rgba(54, 185, 204, 0.5)', 'rgba(54, 185, 204, 1)'),
-        "Bench Press": ('rgba(246, 194, 62, 0.5)', 'rgba(246, 194, 62, 1)'),
-        "Deadlift": ('rgba(90, 92, 105, 0.5)', 'rgba(90, 92, 105, 1)'),
-        "Chin-up": ('rgba(58, 123, 213, 0.5)', 'rgba(58, 123, 213, 1)'),
-        "Military Press": ('rgba(100, 181, 246, 0.5)', 'rgba(100, 181, 246, 1)'),
-        "Push-up": ('rgba(255, 99, 132, 0.5)', 'rgba(255, 99, 132, 1)')
-    }
-
-    datasets = []
-    for activity, data_points in activity_data.items():
-        bg_color, border_color = colors.get(activity, ('rgba(100,100,100,0.5)', 'rgba(100,100,100,1)'))
-        datasets.append({
-            "label": activity,
-            "data": data_points,
-            "backgroundColor": bg_color,
-            "borderColor": border_color,
-            "borderWidth": 1
-        })
-    print(date_labels,datasets)
-
-    return jsonify({
-        "labels": date_labels,
-        "datasets": datasets
-    })
 
 @dashboard_bp.route('/api/log-activity', methods=['POST'])
 @login_required
@@ -415,6 +326,10 @@ def log_activity():
             notes=data.get('notes')
         )
         
+        # Update user's total duration
+        if activity_session.duration:
+            current_user.total_duration += activity_session.duration
+        
         db.session.add(activity_session)
         db.session.commit()
         
@@ -428,36 +343,6 @@ def log_activity():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
-    
-@dashboard_bp.route('/api/sessions/record_process', methods=['POST'])
-@login_required
-def record_session_process():
-    data = request.get_json()
-    session_id = data.get('session_id')
-    actual_duration = data.get('actual_duration')
-    actual_reps = data.get('actual_reps')  
-
-    
-    session = ActivitySession.query.get(session_id)
-    if not session or session.user_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Invalid or unauthorized session'}), 403
-
-    try:
-        actual_duration_minutes = round(actual_duration / 60, 2) if actual_duration else None
-        new_record = ActivityRecord(
-            session_id=session_id,
-            actual_duration=actual_duration_minutes,
-            actual_reps=actual_reps,
-            timestamp=datetime.utcnow()
-        )
-
-        db.session.add(new_record)
-        db.session.commit()
-
-        return jsonify({'success': True, 'message': 'Session record saved successfully'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 @dashboard_bp.route('/api/follow/<int:user_id>', methods=['POST'])
 @login_required
@@ -478,7 +363,7 @@ def follow_user(user_id):
         current_user.follow(user_to_follow)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'You are now following {user_to_follow.email}'})
+        return jsonify({'success': True, 'message': f'You are now following {user_to_follow.id}'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
@@ -502,39 +387,10 @@ def unfollow_user(user_id):
         current_user.unfollow(user_to_unfollow)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'You have unfollowed {user_to_unfollow.email}'})
+        return jsonify({'success': True, 'message': f'You have unfollowed {user_to_unfollow.id}'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
-
-from sqlalchemy.exc import SQLAlchemyError
-@dashboard_bp.route('/api/sessions/<int:session_id>/complete', methods=['POST'])
-def complete_session(session_id):
-    data = request.get_json()
-    print("Received JSON:", data)
-    if not data:
-        return jsonify({'message': 'Missing or invalid JSON'}), 400
-    per_round = data.get('per_round', 0)
-
-    try:
-        session = ActivitySession.query.get(session_id)
-        if not session:
-            return jsonify({'message': 'Session not found'}), 404
-
-        if per_round > 0:
-           
-            session.duration = max(session.duration - per_round, 0)
-
-        
-        if session.duration == 0:
-            session.is_completed = True
-
-        db.session.commit()
-        return jsonify({'message': 'Session updated successfully'}), 200
-
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return jsonify({'message': 'Database error', 'error': str(e)}), 500
 
 # Helper functions
 
@@ -561,21 +417,14 @@ def check_achievements(user_id):
     
     earned_ids = [id[0] for id in earned_achievement_ids]
     
-    if earned_ids:
-        unearned_achievements = Achievement.query.filter(~Achievement.id.in_(earned_ids)).all()
-    else:
-        unearned_achievements = Achievement.query.all()
+    unearned_achievements = Achievement.query.filter(
+        ~Achievement.id.in_(earned_ids) if earned_ids else True
+    ).all()
     
     # For each unearned achievement, check if the user meets the requirements
     for achievement in unearned_achievements:
         # First Activity Achievement
-        # First Activity Achievement
         if achievement.title == "First Activity":
-            activity_count = ActivitySession.query.filter_by(
-                user_id=user_id, 
-                is_completed=True
-            ).count()
-            
             activity_count = ActivitySession.query.filter_by(
                 user_id=user_id, 
                 is_completed=True
@@ -584,43 +433,6 @@ def check_achievements(user_id):
             if activity_count >= 1:
                 award_achievement(user_id, achievement.id)
         
-        # First Goal Completion Achievement
-        elif achievement.title == "Goal Crusher":
-            completed_goals = Goal.query.filter_by(
-                user_id=user_id, 
-                is_completed=True
-            ).count()
-            
-            if completed_goals >= 1:
-                award_achievement(user_id, achievement.id)
-        
-        # Training Time Achievement (1+ hour)
-        elif achievement.title == "Hour Trainer":
-            # Sum of all completed session durations
-            total_duration = db.session.query(func.sum(ActivitySession.duration))\
-                .filter(
-                    ActivitySession.user_id == user_id,
-                    ActivitySession.is_completed == True
-                ).scalar() or 0
-
-            print("Total Duration:", total_duration)
-            
-            if total_duration >= 60:  # 60 minutes = 1 hour
-                award_achievement(user_id, achievement.id)
-        
-        # Calorie Burner Achievement (1000+ calories)
-        elif achievement.title == "Calorie Burner":
-            # Sum of calories burned across all completed sessions
-            total_calories = db.session.query(func.sum(ActivitySession.calories_burned))\
-                .filter(
-                    ActivitySession.user_id == user_id,
-                    ActivitySession.is_completed == True
-                ).scalar() or 0
-            
-            if total_calories >= 1000:
-                award_achievement(user_id, achievement.id)
-        
-        # Activity Streak Achievement (5 consecutive days)
         # First Goal Completion Achievement
         elif achievement.title == "Goal Crusher":
             completed_goals = Goal.query.filter_by(
@@ -724,71 +536,6 @@ def check_achievements(user_id):
                 
                 if cardio_sessions >= 5:  # 5+ cardio sessions
                     award_achievement(user_id, achievement.id)
-            # Get all completed activity sessions ordered by date
-            completed_sessions = ActivitySession.query.filter_by(
-                user_id=user_id,
-                is_completed=True
-            ).order_by(ActivitySession.start_time).all()
-            
-            if completed_sessions:
-                # Extract dates and remove time component
-                session_dates = [session.start_time.date() for session in completed_sessions]
-                # Remove duplicates (multiple activities on same day)
-                unique_dates = sorted(set(session_dates))
-                
-                # Check for streak of 5 consecutive days
-                max_streak = 1
-                current_streak = 1
-                for i in range(1, len(unique_dates)):
-                    # If dates are consecutive
-                    if (unique_dates[i] - unique_dates[i-1]).days == 1:
-                        current_streak += 1
-                        max_streak = max(max_streak, current_streak)
-                    else:
-                        current_streak = 1
-                print("Max Streak:", max_streak)
-                if max_streak >= 5:  # 5-day streak
-                    award_achievement(user_id, achievement.id)
-        
-        # Strength Training Achievement (focused on strength exercises)
-        elif achievement.title == "Strength Enthusiast":
-            # Get IDs of strength-related activity types
-            strength_activity_ids = db.session.query(ActivityType.id)\
-                .filter(ActivityType.name.in_(['Weightlifting', 'Push-ups', 'Pull-ups', 'Squats', 'Deadlifts']))\
-                .all()
-            
-            strength_ids = [id[0] for id in strength_activity_ids]
-            
-            if strength_ids:
-                # Count strength training sessions
-                strength_sessions = ActivitySession.query.filter(
-                    ActivitySession.user_id == user_id,
-                    ActivitySession.is_completed == True,
-                    ActivitySession.activity_type_id.in_(strength_ids)
-                ).count()
-                
-                if strength_sessions >= 5:  # 5+ strength sessions
-                    award_achievement(user_id, achievement.id)
-        
-        # Cardio Master Achievement (focused on cardio exercises)
-        elif achievement.title == "Cardio Master":
-            # Get IDs of cardio-related activity types
-            cardio_activity_ids = db.session.query(ActivityType.id)\
-                .filter(ActivityType.name.in_(['Running', 'Cycling', 'Swimming', 'Jumping Rope', 'HIIT']))\
-                .all()
-            
-            cardio_ids = [id[0] for id in cardio_activity_ids]
-            
-            if cardio_ids:
-                # Count cardio sessions
-                cardio_sessions = ActivitySession.query.filter(
-                    ActivitySession.user_id == user_id,
-                    ActivitySession.is_completed == True,
-                    ActivitySession.activity_type_id.in_(cardio_ids)
-                ).count()
-                
-                if cardio_sessions >= 5:  # 5+ cardio sessions
-                    award_achievement(user_id, achievement.id)
 
 def award_achievement(user_id, achievement_id):
     """Award an achievement to a user"""
@@ -810,74 +557,48 @@ def award_achievement(user_id, achievement_id):
     db.session.add(user_achievement)
     db.session.commit()
 
-
-def check_goal_progress(goal_id):
-    """Check if a goal is completed based on its associated sessions"""
-    if not goal_id:
-        return
-        
-    goal = Goal.query.get(goal_id)
-    if not goal:
-        return
-        
-    # Get progress
-    progress = goal.get_progress()
-    
-    # Update goal completion status if progress is 100%
-    if progress["percentage"] >= 100 and not goal.is_completed:
-        goal.is_completed = True
-        db.session.commit()
-
-@dashboard_bp.route('/api/user-basic/<int:user_id>')
-@login_required
-def user_basic_info(user_id):
-    user = User.query.get_or_404(user_id)
-    return jsonify({
-        'email': user.email,
-        'bio': user.bio,
-        'id': user.id
-    })
-
-@dashboard_bp.route('/user-management')
-@login_required
-def user_management():
-    """用户管理页面"""
-    # 获取所有已分享给当前用户的用户
-    shared_users = db.session.query(User).join(
-        ShareUser, ShareUser.user_id == User.id
-    ).filter(ShareUser.shared_user_id == current_user.id).all()
-    # 获取当前用户分享给其他用户的列表
-    users_shared_with = db.session.query(User).join(
-        ShareUser, ShareUser.shared_user_id == User.id
-    ).filter(ShareUser.user_id == current_user.id).all()
-    return render_template('dashboard/user_management.html',
-                         shared_users=shared_users,
-                         users_shared_with=users_shared_with)
-
 @dashboard_bp.route('/user/<int:user_id>')
 @login_required
 def view_user_profile(user_id):
-    """用户详情页面"""
+    """查看用户资料页面"""
     user = User.query.get_or_404(user_id)
-    from app.models.user import ShareUser  # 添加这行导入
-    return render_template('dashboard/user_profile.html', 
-                         user=user, 
-                         ShareUser=ShareUser,  # 添加 ShareUser 到模板上下文
-                         followers_count=user.get_followers_count(),  # 添加这些统计数据
-                         following_count=user.get_following_count())
+    
+    # 检查是否有权限查看
+    if not ShareUser.can_view_profile(user_id, current_user.id):
+        flash('You do not have permission to view this user\'s profile.', 'error')
+        return redirect(url_for('dashboard.index'))
+    
+    # 获取用户的基本信息
+    user_info = {
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'bio': user.bio,
+        'total_duration': user.total_duration,
+        'created_at': user.created_at,
+        'achievements': [ua.achievement for ua in user.user_achievements],
+        'followers_count': user.get_followers_count(),
+        'following_count': user.get_following_count()
+    }
+    
+    return render_template('dashboard/user_profile.html', user=user_info)
 
 @dashboard_bp.route('/api/search-users', methods=['GET'])
 @login_required
 def search_users():
+    """搜索用户API"""
     query = request.args.get('q', '')
     if not query:
         return jsonify([])
+    
+    # 搜索用户名或邮箱
     users = User.query.filter(
         or_(
             User.email.ilike(f'%{query}%'),
             User.id.ilike(f'%{query}%')
         )
     ).filter(User.id != current_user.id).limit(10).all()
+    
     return jsonify([{
         'id': user.id,
         'email': user.email,
@@ -887,27 +608,42 @@ def search_users():
 @dashboard_bp.route('/api/share-profile/<int:user_id>', methods=['POST'])
 @login_required
 def share_profile(user_id):
+    """分享个人资料给其他用户"""
     if user_id == current_user.id:
         return jsonify({'error': 'Cannot share with yourself'}), 400
-
+    
     user = User.query.get_or_404(user_id)
-
+    
     # 检查是否已经分享过
     existing = ShareUser.query.filter_by(
         user_id=current_user.id,
         shared_user_id=user_id
     ).first()
-
+    
     if existing:
         return jsonify({'error': 'Already shared with this user'}), 400
-
+    
     # 创建新的分享记录
     share = ShareUser(
         user_id=current_user.id,
         shared_user_id=user_id
     )
-
+    
     db.session.add(share)
     db.session.commit()
+    
+    return jsonify({'message': f'Profile shared with {user.id}'})
 
-    return jsonify({'message': f'Profile shared with {user.email}'})
+@dashboard_bp.route('/api/revoke-share/<int:user_id>', methods=['POST'])
+@login_required
+def revoke_share(user_id):
+    """撤销分享权限"""
+    share = ShareUser.query.filter_by(
+        user_id=current_user.id,
+        shared_user_id=user_id
+    ).first_or_404()
+    
+    db.session.delete(share)
+    db.session.commit()
+    
+    return jsonify({'message': 'Share permission revoked'})
